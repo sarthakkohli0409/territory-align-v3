@@ -1415,7 +1415,7 @@ function renderTerrPage() {
       <td>${t.hco_count||0}</td>
       <td>${parseInt(t.zip_count||0).toLocaleString()}</td>
       <td><div class="bar-wrap"><div class="bar-bg"><div class="bar-fill" style="width:${maxVal>0?Math.round(v/maxVal*100):0}%;background:${t.color||'#888'}"></div></div><span style="font-size:11px;color:var(--t3)">${v.toFixed(1)}</span></div></td>
-      <td><button style="padding:3px 9px;font-size:10px;font-family:var(--font);background:var(--s2);border:1px solid var(--border2);border-radius:5px;cursor:pointer;color:var(--t2)" onclick="openTerrDetail('${t.id}','${t.name.replace(/'/g,\\'\\')}')">View</button></td>
+      <td><button style="padding:3px 9px;font-size:10px;font-family:var(--font);background:var(--s2);border:1px solid var(--border2);border-radius:5px;cursor:pointer;color:var(--t2)" onclick="openTerrDetail(this)" data-id="${t.id}" data-name="${t.name.replace(/"/g,'&quot;')}">View</button></td>
     </tr>`;
   }).join('');
 }
@@ -1839,7 +1839,9 @@ function closeTerrModal() {
   bd.style.display = 'none';
 }
 
-async function openTerrDetail(terrId, terrName) {
+async function openTerrDetail(el) {
+  const terrId = el.dataset.id;
+  const terrName = el.dataset.name;
   const bd = document.getElementById('terr-modal-bd');
   bd.style.display = 'flex';
   document.getElementById('tm-name').textContent = terrName;
