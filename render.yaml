@@ -1,0 +1,42 @@
+services:
+  - type: web
+    name: territory-align-api
+    runtime: node
+    buildCommand: npm install
+    startCommand: node index.js
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 8h
+      - key: DATABASE_URL
+        fromDatabase:
+          name: territory-align-db
+          property: connectionString
+      - key: FRONTEND_URL
+        value: https://territory-align.onrender.com
+
+  - type: web
+    name: territory-align
+    runtime: static
+    buildCommand: echo "no build"
+    staticPublishPath: .
+    routes:
+      - type: rewrite
+        source: /api/*
+        destination: https://territory-align-api.onrender.com/api/:splat
+      - type: rewrite
+        source: /*
+        destination: /login.html
+
+databases:
+  - name: territory-align-db
+    databaseName: territory_align
+    user: ta_user
+    plan: free

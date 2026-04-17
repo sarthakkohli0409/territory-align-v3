@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TerritoryAlign — Phase 5: Audit, Upload & Exports</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f5f7;--surface:#fff;--s2:#f5f5f7;--s3:#eeeef0;
+  --border:#e0e0e0;--border2:#c8c8cc;
+  --text:#1d1d1f;--t2:#555;--t3:#888;--t4:#bbb;
+  --blue:#0071e3;--blue-bg:#e8f0fe;--blue-t:#0058b0;
+  --green:#34c759;--green-bg:#e8f8f0;--green-t:#1a7a3c;
+  --red:#ff3b30;--red-bg:#fde8e8;--red-t:#c0392b;
+  --orange:#ff9500;--orange-bg:#fff3e0;--orange-t:#8a5000;
+  --purple:#9b59b6;--purple-bg:#f3e8fd;--purple-t:#6c3483;
+  --r:8px;--r2:12px;--font:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+.topbar{height:52px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:12px;flex-shrink:0}
+.logo{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:600}
+.logo-icon{width:28px;height:28px;background:var(--blue-bg);border-radius:7px;display:flex;align-items:center;justify-content:center}
+.logo-icon svg{width:16px;height:16px}
+.phase-tag{font-size:10px;padding:3px 8px;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--t3)}
+.tsep{flex:1}
+.role-pill{display:flex;align-items:center;gap:6px;background:var(--s2);border:1px solid var(--border);border-radius:20px;padding:4px 12px 4px 8px;font-size:12px;cursor:pointer}
+.rdot{width:8px;height:8px;border-radius:50%}
+.rdot.nsd{background:var(--red)}.rdot.dm{background:var(--orange)}.rdot.oam{background:var(--green)}
+.tbtn{padding:6px 14px;font-size:12px;font-family:var(--font);background:var(--surface);border:1px solid var(--border2);border-radius:20px;cursor:pointer;color:var(--t2);display:flex;align-items:center;gap:5px}
+.tbtn:hover{border-color:var(--blue);color:var(--blue)}
+.tbtn svg{width:12px;height:12px}
+.tbtn.pri{background:var(--blue);color:#fff;border-color:var(--blue)}
+.tbtn.pri:hover{background:#005cc5;border-color:#005cc5;color:#fff}
+.app-body{flex:1;display:flex;overflow:hidden}
+.sidebar{width:218px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column}
+.sb-user{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:9px}
+.av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0}
+.av-nsd{background:var(--red-bg);color:var(--red-t)}.av-dm{background:var(--orange-bg);color:var(--orange-t)}.av-oam{background:var(--green-bg);color:var(--green-t)}
+.ng{padding:5px 0}
+.nl{font-size:10px;font-weight:600;color:var(--t4);text-transform:uppercase;letter-spacing:.5px;padding:3px 14px}
+.ni{display:flex;align-items:center;gap:8px;padding:7px 14px;font-size:12px;color:var(--t2);cursor:pointer;border-left:2px solid transparent}
+.ni svg{width:13px;height:13px;flex-shrink:0;opacity:.7}
+.ni:hover{color:var(--text);background:var(--s2)}
+.ni.active{color:var(--blue);background:var(--blue-bg);border-left-color:var(--blue);font-weight:500}
+.ni.active svg{opacity:1}
+.sf{margin-top:auto;padding:10px 14px;border-top:1px solid var(--border)}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.subtab-bar{display:flex;padding:0 20px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
+.stab{padding:10px 16px;font-size:12px;font-family:var(--font);border:none;background:none;cursor:pointer;color:var(--t3);border-bottom:2px solid transparent;display:flex;align-items:center;gap:6px}
+.stab:hover{color:var(--text)}
+.stab.active{color:var(--blue);border-bottom-color:var(--blue);font-weight:500}
+.stab-badge{font-size:10px;padding:1px 6px;border-radius:8px;background:var(--s2);color:var(--t3)}
+.stab.active .stab-badge{background:var(--blue-bg);color:var(--blue-t)}
+.content{flex:1;overflow-y:auto;padding:20px}
+.view{display:none}.view.active{display:block}
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.page-title{font-size:16px;font-weight:600;color:var(--text)}
+.metrics-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:20px}
+.mc{background:var(--s2);border-radius:var(--r);padding:14px 16px}
+.mc-label{font-size:10px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px}
+.mc-val{font-size:26px;font-weight:600;color:var(--text);line-height:1}
+.mc-sub{font-size:10px;color:var(--t3);margin-top:3px}
+.mc-sub.up{color:var(--green-t)}.mc-sub.warn{color:var(--orange-t)}.mc-sub.dn{color:var(--red-t)}
+.filter-bar{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.filter-bar input,.filter-bar select{font-size:12px;padding:7px 11px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:var(--font);outline:none}
+.filter-bar input{flex:1;min-width:180px}
+.filter-bar input:focus,.filter-bar select:focus{border-color:var(--blue)}
+.fcount{font-size:11px;color:var(--t3);white-space:nowrap}
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden}
+.dt{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
+.dt th{text-align:left;padding:9px 12px;font-size:10px;font-weight:600;color:var(--t3);background:var(--s2);border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.4px}
+.dt td{padding:9px 12px;border-bottom:1px solid var(--border);color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle}
+.dt tr:last-child td{border-bottom:none}
+.dt tr:hover td{background:#f9f9fb}
+.badge{display:inline-flex;align-items:center;font-size:10px;padding:2px 8px;border-radius:10px;font-weight:500}
+.b-blue{background:var(--blue-bg);color:var(--blue-t)}
+.b-green{background:var(--green-bg);color:var(--green-t)}
+.b-red{background:var(--red-bg);color:var(--red-t)}
+.b-orange{background:var(--orange-bg);color:var(--orange-t)}
+.b-purple{background:var(--purple-bg);color:var(--purple-t)}
+.b-gray{background:var(--s3);color:var(--t2)}
+.export-bar{display:flex;gap:10px;flex-wrap:wrap}
+.exp-btn{padding:9px 18px;font-size:12px;font-family:var(--font);background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);cursor:pointer;color:var(--t2);display:flex;align-items:center;gap:7px;font-weight:500;transition:all .15s}
+.exp-btn:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-bg)}
+.exp-btn svg{width:14px;height:14px}
+.exp-btn.primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+.exp-btn.primary:hover{background:#005cc5}
+.exp-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);padding:18px 20px;margin-bottom:12px;display:flex;align-items:flex-start;gap:14px}
+.exp-icon{width:44px;height:44px;border-radius:var(--r);background:var(--blue-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.exp-icon svg{width:22px;height:22px}
+.exp-info{flex:1}
+.exp-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:3px}
+.exp-desc{font-size:12px;color:var(--t3);line-height:1.5;margin-bottom:10px}
+.exp-meta{font-size:10px;color:var(--t4)}
+.upload-zone{border:2px dashed var(--border2);border-radius:var(--r2);padding:40px 20px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:16px}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--blue);background:var(--blue-bg)}
+.upload-zone svg{width:40px;height:40px;margin:0 auto 12px;display:block;color:var(--t3)}
+.upload-zone p{font-size:13px;color:var(--t2);margin-bottom:4px}
+.upload-zone small{font-size:11px;color:var(--t4)}
+.upload-mode-tabs{display:flex;gap:8px;margin-bottom:16px}
+.umt{flex:1;padding:12px;border:2px solid var(--border);border-radius:var(--r2);cursor:pointer;text-align:center;transition:all .15s}
+.umt:hover{border-color:var(--blue)}
+.umt.active{border-color:var(--blue);background:var(--blue-bg)}
+.umt-title{font-size:13px;font-weight:600;margin-bottom:3px}
+.umt-desc{font-size:11px;color:var(--t3)}
+.umt.active .umt-title{color:var(--blue-t)}
+.umt.active .umt-desc{color:var(--blue-t)}
+.validation-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden;margin-bottom:16px}
+.vp-header{padding:12px 16px;background:var(--s2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.vp-body{padding:14px 16px}
+.vp-row{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--s2);font-size:12px}
+.vp-row:last-child{border-bottom:none}
+.vp-status{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.vp-ok{background:var(--green-bg)}
+.vp-ok svg{width:11px;height:11px;color:var(--green-t)}
+.vp-warn{background:var(--orange-bg)}
+.vp-warn svg{width:11px;height:11px;color:var(--orange-t)}
+.vp-err{background:var(--red-bg)}
+.vp-err svg{width:11px;height:11px;color:var(--red-t)}
+.vp-label{flex:1;color:var(--text)}
+.vp-detail{font-size:11px;color:var(--t3)}
+.conflict-list{display:flex;flex-direction:column;gap:8px}
+.conflict-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);padding:14px 16px;display:flex;gap:12px}
+.ci-icon{width:36px;height:36px;border-radius:var(--r);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ci-icon.warn{background:var(--orange-bg)}
+.ci-icon.err{background:var(--red-bg)}
+.ci-icon svg{width:18px;height:18px}
+.ci-body{flex:1}
+.ci-title{font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px}
+.ci-desc{font-size:11px;color:var(--t3);line-height:1.5;margin-bottom:8px}
+.ci-actions{display:flex;gap:6px}
+.ci-btn{padding:4px 12px;font-size:11px;font-family:var(--font);background:var(--s2);border:1px solid var(--border2);border-radius:5px;cursor:pointer;color:var(--t2);font-weight:500}
+.ci-btn:hover{border-color:var(--blue);color:var(--blue)}
+.ci-btn.pri{background:var(--blue);color:#fff;border-color:var(--blue)}
+.severity-tag{font-size:10px;padding:2px 7px;border-radius:8px;font-weight:500}
+.sev-high{background:var(--red-bg);color:var(--red-t)}
+.sev-med{background:var(--orange-bg);color:var(--orange-t)}
+.sev-low{background:var(--s3);color:var(--t2)}
+.timeline{position:relative;padding-left:20px}
+.timeline::before{content:'';position:absolute;left:7px;top:4px;bottom:4px;width:1px;background:var(--border)}
+.tl-item{position:relative;padding:0 0 16px 16px}
+.tl-item:last-child{padding-bottom:0}
+.tl-dot{position:absolute;left:-13px;top:3px;width:10px;height:10px;border-radius:50%;border:2px solid var(--surface)}
+.tl-dot.approve{background:var(--green)}.tl-dot.reject{background:var(--red)}.tl-dot.edit{background:var(--blue)}.tl-dot.upload{background:var(--orange)}.tl-dot.request{background:var(--purple)}
+.tl-header{display:flex;align-items:center;gap:8px;margin-bottom:3px}
+.tl-action{font-size:11px;font-weight:600;color:var(--text)}
+.tl-time{font-size:10px;color:var(--t3);margin-left:auto}
+.tl-user{font-size:11px;color:var(--t2)}
+.tl-detail{font-size:11px;color:var(--t3);margin-top:2px}
+.tl-ba{display:flex;gap:8px;margin-top:5px}
+.tl-b,.tl-a{font-size:10px;padding:3px 8px;border-radius:5px}
+.tl-b{background:var(--red-bg);color:var(--red-t)}.tl-a{background:var(--green-bg);color:var(--green-t)}
+.toast{position:absolute;bottom:16px;right:16px;border-radius:var(--r);padding:10px 16px;font-size:12px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:999;max-width:300px;font-weight:500}
+.toast.show{opacity:1}
+.toast.success{background:#1a7a3c;color:#fff}.toast.info{background:var(--blue);color:#fff}.toast.warn{background:var(--orange-t);color:#fff}
+.two-col{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:16px}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);padding:16px}
+.panel-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+.col-scheme{font-family:monospace;font-size:11px;color:var(--text);background:var(--s2);border-radius:var(--r);padding:12px;line-height:2}
+.col-req{color:var(--red-t);font-weight:600}.col-opt{color:var(--blue-t)}
+.progress-bar{height:8px;background:var(--s3);border-radius:4px;overflow:hidden;margin-top:6px}
+.pb-fill{height:100%;border-radius:4px;transition:width .3s}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">
+    <div class="logo-icon"><svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="5.5" stroke="var(--blue)" stroke-width="1.4"/><path d="M4 8Q6 5.5 8 8Q10 10.5 12 8" stroke="var(--blue)" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg></div>
+    TerritoryAlign
+  </div>
+  <span class="phase-tag">Phase 5 — Audit, Upload & Exports</span>
+  <div class="tsep"></div>
+  <div class="role-pill" onclick="cycleRole()">
+    <span class="rdot" id="rdot"></span>
+    <span id="rlabel">NSD</span>
+    <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 3.5l3 3 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+  </div>
+  <button class="tbtn" onclick="exportAuditCSV()">
+    <svg viewBox="0 0 16 16" fill="none"><path d="M8 3v8M5 8l3 3 3-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M2 13h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+    Export audit
+  </button>
+  <button class="tbtn pri" onclick="switchTab('upload',document.getElementById('tab-upload'))">
+    <svg viewBox="0 0 16 16" fill="none"><path d="M8 10V3M5 6l3-3 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 13h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+    Upload data
+  </button>
+</div>
+
+<div class="app-body" style="position:relative">
+  <div class="sidebar">
+    <div class="sb-user">
+      <div class="av" id="sb-av"></div>
+      <div><div style="font-size:12px;font-weight:600" id="sb-name"></div><div style="font-size:10px;color:var(--t3)" id="sb-role"></div></div>
+    </div>
+    <div class="ng">
+      <div class="nl">Overview</div>
+      <div class="ni" onclick="showToast('Dashboard — Phase 1','info')"><svg viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.2"/><rect x="9" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.2"/><rect x="1" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.2"/><rect x="9" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.2"/></svg>Dashboard</div>
+      <div class="ni" onclick="showToast('Map — Phase 2','info')"><svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="7" r="4" stroke="currentColor" stroke-width="1.2"/><circle cx="8" cy="7" r="1.5" fill="currentColor"/></svg>Map view</div>
+      <div class="ni" onclick="showToast('Territories — Phase 3','info')"><svg viewBox="0 0 16 16" fill="none"><path d="M2 4h12M2 8h8M2 12h10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>Territories</div>
+      <div class="ni" onclick="showToast('Requests — Phase 4','info')"><svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.2"/><path d="M5.5 8l2 2 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Requests</div>
+    </div>
+    <div class="ng">
+      <div class="nl">Admin</div>
+      <div class="ni active" onclick="switchTab('audit',document.getElementById('tab-audit'))"><svg viewBox="0 0 16 16" fill="none"><rect x="3" y="2" width="10" height="12" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M5.5 6h5M5.5 9h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>Audit log</div>
+      <div class="ni" onclick="switchTab('upload',document.getElementById('tab-upload'))"><svg viewBox="0 0 16 16" fill="none"><path d="M8 10V3M5 6l3-3 3 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 13h12" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>Bulk upload</div>
+      <div class="ni" onclick="switchTab('conflicts',document.getElementById('tab-conflicts'))"><svg viewBox="0 0 16 16" fill="none"><path d="M8 2L15 14H1L8 2z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M8 7v3M8 11.5v.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>Conflicts<span style="margin-left:auto;font-size:10px;padding:1px 6px;border-radius:8px;background:var(--orange-bg);color:var(--orange-t);font-weight:600">3</span></div>
+      <div class="ni" onclick="switchTab('exports',document.getElementById('tab-exports'))"><svg viewBox="0 0 16 16" fill="none"><path d="M8 3v8M5 8l3 3 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M2 13h12" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>Exports</div>
+      <div class="ni" onclick="showToast('Versions — Phase 6','info')"><svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.2"/><path d="M8 5v3l2 1.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>Versions</div>
+    </div>
+    <div class="sf"><button style="font-size:12px;color:var(--t3);cursor:pointer;background:none;border:none;font-family:var(--font);display:flex;align-items:center;gap:6px"><svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M6 14H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h3M11 11l3-3-3-3M14 8H6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Sign out</button></div>
+  </div>
+
+  <div class="main">
+    <div class="subtab-bar">
+      <button class="stab active" id="tab-audit" onclick="switchTab('audit',this)">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><rect x="3" y="2" width="10" height="12" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M5.5 6h5M5.5 9h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        Audit log<span class="stab-badge" id="audit-badge">24</span>
+      </button>
+      <button class="stab" id="tab-upload" onclick="switchTab('upload',this)">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M8 10V3M5 6l3-3 3 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 13h12" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        Bulk upload
+      </button>
+      <button class="stab" id="tab-conflicts" onclick="switchTab('conflicts',this)">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M8 2L15 14H1L8 2z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M8 7v3M8 11.5v.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        Conflict report<span class="stab-badge" style="background:var(--orange-bg);color:var(--orange-t)">3</span>
+      </button>
+      <button class="stab" id="tab-exports" onclick="switchTab('exports',this)">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M8 3v8M5 8l3 3 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M2 13h12" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        Exports & downloads
+      </button>
+    </div>
+
+    <div class="content" style="position:relative">
+
+      <!-- AUDIT LOG -->
+      <div id="view-audit" class="view active">
+        <div class="page-header">
+          <div class="page-title">Audit log</div>
+          <div style="display:flex;gap:8px">
+            <button class="tbtn" onclick="exportAuditCSV()">
+              <svg viewBox="0 0 16 16" fill="none"><path d="M8 3v8M5 8l3 3 3-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M2 13h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+              Export CSV
+            </button>
+          </div>
+        </div>
+        <div class="metrics-row" id="audit-metrics"></div>
+        <div class="filter-bar">
+          <input id="audit-search" placeholder="Search user, action, or detail..." oninput="renderAuditTable()">
+          <select id="audit-action-f" onchange="renderAuditTable()">
+            <option value="">All actions</option>
+            <option>Request submitted</option><option>Approved</option><option>Rejected</option>
+            <option>Direct edit</option><option>Bulk upload</option><option>Rollback</option>
+          </select>
+          <select id="audit-role-f" onchange="renderAuditTable()">
+            <option value="">All roles</option>
+            <option>NSD</option><option>DM</option><option>OAM</option>
+          </select>
+          <select id="audit-district-f" onchange="renderAuditTable()">
+            <option value="">All districts</option>
+            <option>NORTHEAST</option><option>SOUTHEAST</option><option>NORTH CENTRAL</option><option>SOUTH CENTRAL</option><option>WEST</option>
+          </select>
+          <span class="fcount" id="audit-count"></span>
+        </div>
+
+        <div class="two-col">
+          <div class="table-wrap">
+            <table class="dt">
+              <thead><tr>
+                <th style="width:13%">Timestamp</th>
+                <th style="width:14%">User</th>
+                <th style="width:8%">Role</th>
+                <th style="width:14%">Action</th>
+                <th style="width:26%">Detail</th>
+                <th style="width:13%">Before</th>
+                <th style="width:12%">After</th>
+              </tr></thead>
+              <tbody id="audit-tbody"></tbody>
+            </table>
+          </div>
+          <div>
+            <div class="panel" style="margin-bottom:14px">
+              <div class="panel-title">Activity timeline</div>
+              <div class="timeline" id="audit-timeline"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BULK UPLOAD -->
+      <div id="view-upload" class="view">
+        <div class="page-header">
+          <div class="page-title">Bulk upload</div>
+        </div>
+        <div class="two-col">
+          <div>
+            <div class="panel" style="margin-bottom:14px">
+              <div class="panel-title">Upload mode</div>
+              <div class="upload-mode-tabs">
+                <div class="umt active" id="mode-append" onclick="setMode('append')">
+                  <div class="umt-title">Append mode</div>
+                  <div class="umt-desc">Add new mappings to existing alignment — ZIPs and HCPs not in file are unchanged</div>
+                </div>
+                <div class="umt" id="mode-replace" onclick="setMode('replace')">
+                  <div class="umt-title">Replace mode</div>
+                  <div class="umt-desc">Overwrite entire alignment — all existing mappings replaced with file contents</div>
+                </div>
+              </div>
+              <div id="replace-warn" style="display:none;background:var(--red-bg);border:1px solid var(--red);border-radius:var(--r);padding:9px 12px;font-size:11px;color:var(--red-t);margin-bottom:14px;display:none">
+                Replace mode will overwrite all 41,521 existing ZIP mappings and 7,125 HCP assignments. This action is logged and can be rolled back via Versions.
+              </div>
+              <div class="upload-zone" id="upload-zone" onclick="simulateUpload()" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')">
+                <svg viewBox="0 0 40 40" fill="none"><path d="M20 26V14M15 19l5-5 5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><rect x="4" y="28" width="32" height="8" rx="3" stroke="currentColor" stroke-width="1.5"/></svg>
+                <p>Drop your CSV or Excel file here, or click to browse</p>
+                <small>Required: ZIP · HCO_ID · HCO_Name · Territory_ID · Territory_Name · Region · Rep_ID · TRx_Value</small>
+              </div>
+              <button class="tbtn pri" style="width:100%;justify-content:center;padding:10px" onclick="simulateUpload()">
+                <svg viewBox="0 0 16 16" fill="none" width="13" height="13"><path d="M8 10V3M5 6l3-3 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 13h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                Validate &amp; upload
+              </button>
+            </div>
+
+            <div class="validation-panel" id="validation-panel" style="display:none">
+              <div class="vp-header">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="2" stroke="var(--blue)" stroke-width="1.2"/><path d="M5 8l2.5 2.5L11 5" stroke="var(--blue)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <span style="font-size:12px;font-weight:600">Validation results — sample_alignment_v1.3.xlsx</span>
+                <span class="badge b-green" style="margin-left:auto">Ready to upload</span>
+              </div>
+              <div class="vp-body" id="vp-rows"></div>
+              <div style="padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end">
+                <button class="tbtn" onclick="document.getElementById('validation-panel').style.display='none'">Cancel</button>
+                <button class="tbtn pri" onclick="confirmUpload()">Confirm upload</button>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="panel" style="margin-bottom:14px">
+              <div class="panel-title">Required file format</div>
+              <div class="col-scheme">
+                <span class="col-req">ZIP</span> · <span class="col-req">HCO_ID</span> · <span class="col-req">HCO_Name</span><br>
+                <span class="col-req">Territory_ID</span> · <span class="col-req">Territory_Name</span><br>
+                <span class="col-req">Region</span> · <span class="col-req">Rep_ID</span><br>
+                <span class="col-opt">TRx_Value</span> <span style="color:var(--t4)">(optional)</span><br>
+                <br>
+                <span style="color:var(--t3);font-family:var(--font);font-size:11px">One row = one ZIP–HCO–Territory mapping<br>Same ZIP in multiple rows = conflict warning</span>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="panel-title">Upload history</div>
+              <div id="upload-history"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CONFLICT REPORT -->
+      <div id="view-conflicts" class="view">
+        <div class="page-header">
+          <div class="page-title">Conflict report</div>
+          <button class="tbtn" onclick="exportConflictCSV()">
+            <svg viewBox="0 0 16 16" fill="none"><path d="M8 3v8M5 8l3 3 3-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M2 13h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+            Export conflicts
+          </button>
+        </div>
+        <div class="metrics-row">
+          <div class="mc"><div class="mc-label">Total conflicts</div><div class="mc-val">3</div><div class="mc-sub warn">Requires attention</div></div>
+          <div class="mc"><div class="mc-label">High severity</div><div class="mc-val" style="color:var(--red-t)">1</div><div class="mc-sub dn">Dual-mapped ZIP</div></div>
+          <div class="mc"><div class="mc-label">Medium severity</div><div class="mc-val" style="color:var(--orange-t)">1</div><div class="mc-sub warn">Vacant territory</div></div>
+          <div class="mc"><div class="mc-label">Low severity</div><div class="mc-val" style="color:var(--t2)">1</div><div class="mc-sub">Low HCP count</div></div>
+        </div>
+        <div class="conflict-list" id="conflict-list"></div>
+      </div>
+
+      <!-- EXPORTS -->
+      <div id="view-exports" class="view">
+        <div class="page-header"><div class="page-title">Exports &amp; downloads</div></div>
+        <div class="metrics-row">
+          <div class="mc"><div class="mc-label">Current version</div><div class="mc-val" style="font-size:18px;font-family:monospace">v1.2</div><div class="mc-sub">Apr 7 2026</div></div>
+          <div class="mc"><div class="mc-label">ZIPs in alignment</div><div class="mc-val">41,521</div><div class="mc-sub up">Full ZTT dataset</div></div>
+          <div class="mc"><div class="mc-label">HCPs mapped</div><div class="mc-val">7,125</div><div class="mc-sub up">50 territories</div></div>
+          <div class="mc"><div class="mc-label">Last export</div><div class="mc-val" style="font-size:16px">Apr 15</div><div class="mc-sub">ZTT mapping</div></div>
+        </div>
+        <div id="export-cards"></div>
+      </div>
+
+      <div class="toast" id="toast"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const ROLES={
+  nsd:{name:'National Sales Director',id:'E056',initials:'NS',avClass:'av-nsd',label:'NSD',sub:'NSD — NATION'},
+  dm:{name:'District Manager 1',id:'E051',initials:'DM',avClass:'av-dm',label:'DM',sub:'DM — NORTHEAST'},
+  oam:{name:'Rep 1',id:'E001',initials:'R1',avClass:'av-oam',label:'OAM',sub:'OAM — ALBANY, NY'}
+};
+let currentRole='nsd';
+
+const ACTION_COLORS={
+  'Request submitted':'b-purple','Approved':'b-green','Rejected':'b-red',
+  'Direct edit':'b-blue','Bulk upload':'b-orange','Rollback':'b-gray'
+};
+const TL_DOTS={
+  'Request submitted':'request','Approved':'approve','Rejected':'reject',
+  'Direct edit':'edit','Bulk upload':'upload','Rollback':'edit'
+};
+
+const AUDIT_LOG=[
+  {ts:'Apr 16 09:30',user:'Rep 1 (E001)',role:'OAM',action:'Request submitted',detail:'REQ-041: Change HCP territory — ALBANY, NY → BOSTON, MA',before:'ALBANY, NY',after:'Pending',district:'NORTHEAST'},
+  {ts:'Apr 15 16:22',user:'District Manager 1 (E051)',role:'DM',action:'Request submitted',detail:'REQ-040: Reassign ZIP 89511 — SACRAMENTO, CA conflict',before:'SACRAMENTO, CA',after:'Pending',district:'NORTHEAST'},
+  {ts:'Apr 15 14:10',user:'National Sales Director (E056)',role:'NSD',action:'Direct edit',detail:'OAM reassignment: CINCINNATI, OH → Rep 12 (E012)',before:'Rep 24 (E024)',after:'Rep 12 (E012)',district:'NORTHEAST'},
+  {ts:'Apr 14 11:05',user:'District Manager 2 (E052)',role:'DM',action:'Request submitted',detail:'REQ-038: Reassign OAM — DALLAS, TX vacancy (Urgent)',before:'Vacant',after:'Pending',district:'SOUTH CENTRAL'},
+  {ts:'Apr 12 17:00',user:'National Sales Director (E056)',role:'NSD',action:'Approved',detail:'REQ-039: Add HCP00009991 → FT LAUDERDALE, FL',before:'Unassigned',after:'FT LAUDERDALE, FL',district:'SOUTHEAST'},
+  {ts:'Apr 12 14:15',user:'District Manager 4 (E054)',role:'DM',action:'Approved',detail:'REQ-039 forwarded: New HCP confirmed — Weston, FL',before:'Pending',after:'DM Approved',district:'SOUTHEAST'},
+  {ts:'Apr 12 11:30',user:'Rep 17 (E017)',role:'OAM',action:'Request submitted',detail:'REQ-039: Add HCP — New cardiology group in Weston, FL',before:'Unassigned',after:'Pending',district:'SOUTHEAST'},
+  {ts:'Apr 10 09:30',user:'National Sales Director (E056)',role:'NSD',action:'Rejected',detail:'REQ-037: Remove HCP00000842 from JACKSONVILLE, FL',before:'JACKSONVILLE, FL',after:'Rejected',district:'SOUTHEAST'},
+  {ts:'Apr 9 10:05',user:'Rep 20 (E020)',role:'OAM',action:'Request submitted',detail:'REQ-037: Remove inactive HCP — JACKSONVILLE, FL',before:'JACKSONVILLE, FL',after:'Pending',district:'SOUTHEAST'},
+  {ts:'Apr 8 14:00',user:'National Sales Director (E056)',role:'NSD',action:'Approved',detail:'REQ-036: Change HCP territory — SACRAMENTO, CA → SAN JOSE, CA',before:'SACRAMENTO, CA',after:'SAN JOSE, CA',district:'WEST'},
+  {ts:'Apr 8 11:20',user:'District Manager 4 (E054)',role:'DM',action:'Approved',detail:'REQ-036 forwarded: HCP relocation confirmed',before:'Pending',after:'DM Approved',district:'WEST'},
+  {ts:'Apr 8 08:45',user:'Rep 37 (E037)',role:'OAM',action:'Request submitted',detail:'REQ-036: Change HCP territory — HCP relocated to Clovis, CA',before:'SACRAMENTO, CA',after:'Pending',district:'WEST'},
+  {ts:'Apr 7 08:00',user:'National Sales Director (E056)',role:'NSD',action:'Bulk upload',detail:'Full alignment replace — v1.2 (41,521 ZIPs, 50 territories, 7,125 HCPs)',before:'v1.1',after:'v1.2',district:'NATION'},
+  {ts:'Jan 15 09:00',user:'National Sales Director (E056)',role:'NSD',action:'Bulk upload',detail:'Q1 update upload — v1.1 (DALLAS vacancy flagged, TX expansion)',before:'v1.0',after:'v1.1',district:'NATION'},
+  {ts:'Jan 14 14:30',user:'National Sales Director (E056)',role:'NSD',action:'Direct edit',detail:'Territory rep assignment: DALLAS, TX → Vacant (E048)',before:'Rep 14 (E014)',after:'Vacant (E048)',district:'SOUTH CENTRAL'},
+  {ts:'Dec 18 11:00',user:'National Sales Director (E056)',role:'NSD',action:'Approved',detail:'REQ-031: Add HCP — New oncology practice CHICAGO S, IL',before:'Unassigned',after:'CHICAGO S, IL',district:'NORTH CENTRAL'},
+  {ts:'Dec 15 09:15',user:'Rep 11 (E011)',role:'OAM',action:'Request submitted',detail:'REQ-031: Add HCP — New oncology group in Fort Wayne, IN',before:'Unassigned',after:'Pending',district:'NORTH CENTRAL'},
+  {ts:'Dec 10 10:30',user:'District Manager 3 (E053)',role:'DM',action:'Direct edit',detail:'ZIP 46845 mapping corrected: CHICAGO N → CHICAGO S, IL',before:'CHICAGO N, IL',after:'CHICAGO S, IL',district:'NORTH CENTRAL'},
+  {ts:'Nov 22 14:00',user:'National Sales Director (E056)',role:'NSD',action:'Approved',detail:'REQ-028: Reassign ZIP cluster — PEORIA realignment',before:'CHICAGO N, IL',after:'PEORIA, IL',district:'NORTH CENTRAL'},
+  {ts:'Nov 15 08:30',user:'National Sales Director (E056)',role:'NSD',action:'Rollback',detail:'Rolled back to v0.9 — WEST region boundaries corrected',before:'v1.0-beta',after:'v0.9',district:'NATION'},
+  {ts:'Oct 2 09:00',user:'National Sales Director (E056)',role:'NSD',action:'Direct edit',detail:'Initial OAM assignments — all 50 territories',before:'Unassigned',after:'All assigned',district:'NATION'},
+  {ts:'Oct 1 08:00',user:'National Sales Director (E056)',role:'NSD',action:'Bulk upload',detail:'Initial alignment upload — v1.0 (41,521 ZIPs, 50 territories)',before:'—',after:'v1.0',district:'NATION'},
+  {ts:'Sep 30 16:00',user:'National Sales Director (E056)',role:'NSD',action:'Direct edit',detail:'System configuration: 5 districts created, 56 roster entries',before:'—',after:'Configured',district:'NATION'},
+  {ts:'Sep 30 14:00',user:'National Sales Director (E056)',role:'NSD',action:'Direct edit',detail:'System initialized — TerritoryAlign v1.0',before:'—',after:'Active',district:'NATION'},
+];
+
+const CONFLICTS=[
+  {title:'ZIP 89511 mapped to multiple territories',desc:'ZIP 89511 (Reno, NV) appears in both SACRAMENTO, CA and SAN FRANCISCO, CA territory mappings. This creates ambiguity for HCP assignment and billing. REQ-040 is pending resolution.',severity:'high',type:'Duplicate ZIP mapping',territories:['SACRAMENTO, CA','SAN FRANCISCO, CA'],affected_hcps:3,req:'REQ-040'},
+  {title:'DALLAS, TX territory vacant — 3 months',desc:'DALLAS, TX has had no assigned OAM since January 2026. 180 HCPs and a combined Index 3 score of 954.1 are receiving no rep coverage. REQ-038 has been submitted to fill this vacancy.',severity:'med',type:'Vacant territory',territories:['DALLAS, TX'],affected_hcps:180,req:'REQ-038'},
+  {title:'JACKSONVILLE, FL HCP count below threshold',desc:'JACKSONVILLE, FL has 90 HCPs — the lowest in the SOUTHEAST district (avg 122). While not a mapping error, this may indicate under-coverage of the geographic area or an opportunity for territory expansion.',severity:'low',type:'Coverage gap',territories:['JACKSONVILLE, FL'],affected_hcps:90,req:null}
+];
+
+const UPLOAD_HISTORY=[
+  {version:'v1.2',ts:'Apr 7 2026',by:'NSD (E056)',mode:'Replace',rows:41521,status:'success'},
+  {version:'v1.1',ts:'Jan 15 2026',by:'NSD (E056)',mode:'Replace',rows:41521,status:'success'},
+  {version:'v1.0',ts:'Oct 1 2025',by:'NSD (E056)',mode:'Replace',rows:41521,status:'success'},
+];
+
+const EXPORT_CARDS=[
+  {title:'ZTT mapping export',desc:'Complete ZIP → Territory → Rep mapping for all 41,521 ZIPs across 50 territories. Includes territory name, district, OAM name and ID, ZIP city, and current version stamp.',icon:'map',cols:'ZIP · City · Territory_ID · Territory_Name · District · Rep_ID · Rep_Name · Version · Export_Date',fn:'exportZTT'},
+  {title:'Audit log export',desc:'Full audit trail of all actions taken in the system — requests, approvals, rejections, direct edits, and bulk uploads. Includes before/after state for every action.',icon:'log',cols:'Timestamp · User · Role · Action · Detail · Before_State · After_State · District · Version',fn:'exportAuditCSV'},
+  {title:'HCP alignment export',desc:'All 7,125 HCPs with their current territory assignments, tier classifications, and all 4 alignment index scores.',icon:'hcp',cols:'HCP_ID · City · State · ZIP · Territory · District · OAM · Tier · Index_1 · Index_2 · Index_3 · Index_4',fn:'exportHCPs'},
+  {title:'Conflict report export',desc:'All detected alignment conflicts with severity level, affected territories, HCP counts, and linked request IDs.',icon:'conflict',cols:'Conflict_Type · Severity · Territories · Affected_HCPs · Linked_Request · Status',fn:'exportConflictCSV'},
+  {title:'Territory index summary',desc:'All 50 territories with all 4 alignment indices, HCP counts, ZIP counts, OAM assignments and performance metrics.',icon:'territory',cols:'Territory · District · OAM · HCO_Count · ZIP_Count · Index_1 · Index_2 · Index_3 · Index_4 · Version',fn:'exportTerritories'},
+];
+
+function cycleRole(){
+  const order=['nsd','dm','oam'];
+  currentRole=order[(order.indexOf(currentRole)+1)%3];
+  applyRole();
+}
+function applyRole(){
+  const r=ROLES[currentRole];
+  document.getElementById('rdot').className='rdot '+currentRole;
+  document.getElementById('rlabel').textContent=r.label;
+  document.getElementById('sb-av').textContent=r.initials;
+  document.getElementById('sb-av').className='av '+r.avClass;
+  document.getElementById('sb-name').textContent=r.name+' ('+r.id+')';
+  document.getElementById('sb-role').textContent=r.sub;
+  renderAuditMetrics();
+  renderAuditTable();
+}
+
+function switchTab(tab,btn){
+  document.querySelectorAll('.stab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
+  if(btn){btn.classList.add('active');}
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+tab).classList.add('active');
+  if(tab==='audit'){renderAuditMetrics();renderAuditTable();}
+  if(tab==='upload'){renderUploadHistory();}
+  if(tab==='conflicts'){renderConflicts();}
+  if(tab==='exports'){renderExportCards();}
+}
+
+function getVisibleLogs(){
+  if(currentRole==='oam') return AUDIT_LOG.filter(l=>l.user.includes('E001'));
+  if(currentRole==='dm') return AUDIT_LOG.filter(l=>l.district==='NORTHEAST'||l.role==='NSD'&&l.district==='NATION');
+  return AUDIT_LOG;
+}
+
+function renderAuditMetrics(){
+  const logs=getVisibleLogs();
+  const approvals=logs.filter(l=>l.action==='Approved').length;
+  const rejections=logs.filter(l=>l.action==='Rejected').length;
+  const edits=logs.filter(l=>l.action==='Direct edit').length;
+  const uploads=logs.filter(l=>l.action==='Bulk upload').length;
+  document.getElementById('audit-metrics').innerHTML=`
+    <div class="mc"><div class="mc-label">Total log entries</div><div class="mc-val">${logs.length}</div><div class="mc-sub">In current view</div></div>
+    <div class="mc"><div class="mc-label">Approvals</div><div class="mc-val" style="color:var(--green-t)">${approvals}</div><div class="mc-sub up">Requests approved</div></div>
+    <div class="mc"><div class="mc-label">Rejections</div><div class="mc-val" style="color:var(--red-t)">${rejections}</div><div class="mc-sub dn">Requests rejected</div></div>
+    <div class="mc"><div class="mc-label">Direct edits</div><div class="mc-val" style="color:var(--blue-t)">${edits}</div><div class="mc-sub">Admin changes</div></div>`;
+  document.getElementById('audit-badge').textContent=logs.length;
+}
+
+function renderAuditTable(){
+  const q=(document.getElementById('audit-search')?.value||'').toLowerCase();
+  const actionF=document.getElementById('audit-action-f')?.value||'';
+  const roleF=document.getElementById('audit-role-f')?.value||'';
+  const distF=document.getElementById('audit-district-f')?.value||'';
+  let logs=getVisibleLogs().filter(l=>{
+    if(actionF&&l.action!==actionF) return false;
+    if(roleF&&l.role!==roleF) return false;
+    if(distF&&l.district!==distF) return false;
+    if(q&&!l.user.toLowerCase().includes(q)&&!l.action.toLowerCase().includes(q)&&!l.detail.toLowerCase().includes(q)) return false;
+    return true;
+  });
+  document.getElementById('audit-count').textContent=logs.length+' entries';
+  const tbody=document.getElementById('audit-tbody');
+  if(tbody) tbody.innerHTML=logs.map(l=>`<tr>
+    <td style="font-family:monospace;font-size:10px;color:var(--t3)">${l.ts}</td>
+    <td style="font-size:11px">${l.user}</td>
+    <td><span class="badge b-gray" style="font-size:9px">${l.role}</span></td>
+    <td><span class="badge ${ACTION_COLORS[l.action]||'b-gray'}" style="font-size:10px">${l.action}</span></td>
+    <td style="font-size:11px;color:var(--t2)">${l.detail}</td>
+    <td style="font-size:10px;color:var(--t3)">${l.before}</td>
+    <td style="font-size:10px;color:var(--green-t)">${l.after}</td>
+  </tr>`).join('');
+
+  const tl=document.getElementById('audit-timeline');
+  if(tl) tl.innerHTML=logs.slice(0,8).map((l,i)=>`
+    <div class="tl-item">
+      <div class="tl-dot ${TL_DOTS[l.action]||'edit'}"></div>
+      <div class="tl-header">
+        <span class="tl-action">${l.action}</span>
+        <span class="tl-time">${l.ts}</span>
+      </div>
+      <div class="tl-user">${l.user}</div>
+      <div class="tl-detail">${l.detail}</div>
+      ${l.before!=='—'?`<div class="tl-ba"><span class="tl-b">${l.before}</span><span class="tl-a">${l.after}</span></div>`:''}
+    </div>`).join('');
+}
+
+function renderConflicts(){
+  document.getElementById('conflict-list').innerHTML=CONFLICTS.map(c=>`
+    <div class="conflict-item">
+      <div class="ci-icon ${c.severity==='high'?'err':'warn'}">
+        <svg viewBox="0 0 20 20" fill="none"><path d="M10 3L18 17H2L10 3z" stroke="${c.severity==='high'?'var(--red-t)':'var(--orange-t)'}" stroke-width="1.4" stroke-linejoin="round"/><path d="M10 9v3.5M10 14v.5" stroke="${c.severity==='high'?'var(--red-t)':'var(--orange-t)'}" stroke-width="1.4" stroke-linecap="round"/></svg>
+      </div>
+      <div class="ci-body">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="font-size:12px;font-weight:600;color:var(--text)">${c.title}</span>
+          <span class="severity-tag ${c.severity==='high'?'sev-high':c.severity==='med'?'sev-med':'sev-low'}">${c.severity==='high'?'High':c.severity==='med'?'Medium':'Low'}</span>
+          <span class="badge b-gray" style="font-size:9px">${c.type}</span>
+        </div>
+        <div class="ci-desc">${c.desc}</div>
+        <div style="font-size:10px;color:var(--t3);margin-bottom:8px">
+          Territories: ${c.territories.join(', ')} · Affected HCPs: ${c.affected_hcps}
+          ${c.req?` · Linked request: <strong>${c.req}</strong>`:''}
+        </div>
+        <div class="ci-actions">
+          ${c.req?`<button class="ci-btn pri" onclick="showToast('Opening ${c.req} in request workflow','info')">View request</button>`:''}
+          <button class="ci-btn" onclick="showToast('Conflict flagged for next review cycle','info')">Flag for review</button>
+          <button class="ci-btn" onclick="showToast('Conflict dismissed from active report','warn')">Dismiss</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function renderUploadHistory(){
+  document.getElementById('upload-history').innerHTML=UPLOAD_HISTORY.map((u,i)=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:${i<UPLOAD_HISTORY.length-1?'1px solid var(--border)':'none'}">
+      <span style="font-family:monospace;font-size:12px;font-weight:600;color:var(--blue-t);min-width:32px">${u.version}</span>
+      <div style="flex:1">
+        <div style="font-size:11px;font-weight:500">${u.rows.toLocaleString()} rows · ${u.mode} mode</div>
+        <div style="font-size:10px;color:var(--t3)">${u.ts} · ${u.by}</div>
+      </div>
+      ${i===0?`<span class="badge b-green">Current</span>`:`<button class="tbtn" style="font-size:10px;padding:3px 9px" onclick="showToast('Rolled back to ${u.version}','info')">Rollback</button>`}
+    </div>`).join('');
+}
+
+function renderExportCards(){
+  const icons={
+    map:`<svg viewBox="0 0 22 22" fill="none"><circle cx="11" cy="10" r="6" stroke="var(--blue)" stroke-width="1.5"/><path d="M6 10Q8 7.5 11 10Q14 12.5 16 10" stroke="var(--blue)" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>`,
+    log:`<svg viewBox="0 0 22 22" fill="none"><rect x="4" y="3" width="14" height="16" rx="2" stroke="var(--blue)" stroke-width="1.5"/><path d="M7.5 8h7M7.5 11.5h5M7.5 15h4" stroke="var(--blue)" stroke-width="1.3" stroke-linecap="round"/></svg>`,
+    hcp:`<svg viewBox="0 0 22 22" fill="none"><rect x="3" y="6" width="16" height="12" rx="2" stroke="var(--blue)" stroke-width="1.5"/><path d="M7 6V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v1" stroke="var(--blue)" stroke-width="1.5"/><path d="M11 10v4M9 12h4" stroke="var(--blue)" stroke-width="1.4" stroke-linecap="round"/></svg>`,
+    conflict:`<svg viewBox="0 0 22 22" fill="none"><path d="M11 3L20 19H2L11 3z" stroke="var(--blue)" stroke-width="1.5" stroke-linejoin="round"/><path d="M11 10v3.5M11 15v.5" stroke="var(--blue)" stroke-width="1.4" stroke-linecap="round"/></svg>`,
+    territory:`<svg viewBox="0 0 22 22" fill="none"><path d="M3 6h16M3 11h10M3 16h13" stroke="var(--blue)" stroke-width="1.5" stroke-linecap="round"/></svg>`
+  };
+  document.getElementById('export-cards').innerHTML=EXPORT_CARDS.map(e=>`
+    <div class="exp-card">
+      <div class="exp-icon">${icons[e.icon]||icons.log}</div>
+      <div class="exp-info">
+        <div class="exp-title">${e.title}</div>
+        <div class="exp-desc">${e.desc}</div>
+        <div class="exp-meta">Columns: ${e.cols}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
+        <button class="exp-btn primary" onclick="${e.fn}()">
+          <svg viewBox="0 0 16 16" fill="none"><path d="M8 3v8M5 8l3 3 3-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M2 13h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+          Download CSV
+        </button>
+        <button class="exp-btn" onclick="showToast('Excel export — requires hosted backend','info')">
+          <svg viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.2"/><path d="M5 6l2 4 2-4M9 6l2 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+          Download XLSX
+        </button>
+      </div>
+    </div>`).join('');
+}
+
+let uploadMode='append';
+function setMode(m){
+  uploadMode=m;
+  document.getElementById('mode-append').className='umt'+(m==='append'?' active':'');
+  document.getElementById('mode-replace').className='umt'+(m==='replace'?' active':'');
+  const warn=document.getElementById('replace-warn');
+  warn.style.display=m==='replace'?'block':'none';
+}
+
+const VP_ROWS=[
+  {status:'ok',label:'Required columns present',detail:'All 7 required columns found'},
+  {status:'ok',label:'Territory IDs valid',detail:'50 unique territory IDs — all match current alignment'},
+  {status:'ok',label:'Rep ID assignments',detail:'53 of 56 OAMs matched — 3 vacant positions'},
+  {status:'warn',label:'Duplicate ZIP mappings',detail:'ZIP 89511 appears in 2 territory rows — conflict flag raised'},
+  {status:'ok',label:'TRx values present',detail:'All 4 index values computed for 7,125 HCPs'},
+  {status:'ok',label:'Row count',detail:'41,521 rows parsed — matches current alignment count'},
+  {status:'warn',label:'ZIP range gaps',detail:'14 ZIP codes in file not in current ZTT — will be added in append mode'},
+  {status:'ok',label:'No invalid IDs detected',detail:'All HCP_IDs follow HCP00000000 format'},
+];
+
+function simulateUpload(){
+  const panel=document.getElementById('validation-panel');
+  panel.style.display='block';
+  const ok=`<svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="var(--green-t)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  const warn=`<svg viewBox="0 0 12 12" fill="none"><path d="M6 1L11 10H1L6 1z" stroke="var(--orange-t)" stroke-width="1" stroke-linejoin="round"/><path d="M6 5v2M6 8v.5" stroke="var(--orange-t)" stroke-width="1" stroke-linecap="round"/></svg>`;
+  const err=`<svg viewBox="0 0 12 12" fill="none"><path d="M2 2l8 8M10 2l-8 8" stroke="var(--red-t)" stroke-width="1.4" stroke-linecap="round"/></svg>`;
+  document.getElementById('vp-rows').innerHTML=VP_ROWS.map(r=>`
+    <div class="vp-row">
+      <div class="vp-status ${r.status==='ok'?'vp-ok':r.status==='warn'?'vp-warn':'vp-err'}">${r.status==='ok'?ok:r.status==='warn'?warn:err}</div>
+      <span class="vp-label">${r.label}</span>
+      <span class="vp-detail">${r.detail}</span>
+    </div>`).join('');
+  showToast('File validated — 2 warnings, no errors','info');
+}
+
+function confirmUpload(){
+  UPLOAD_HISTORY.unshift({version:'v1.3',ts:'Apr 16 2026',by:'NSD (E056)',mode:uploadMode==='replace'?'Replace':'Append',rows:41521,status:'success'});
+  AUDIT_LOG.unshift({ts:'Apr 16 now',user:ROLES[currentRole].name+' ('+ROLES[currentRole].id+')',role:currentRole.toUpperCase(),action:'Bulk upload',detail:`${uploadMode==='replace'?'Full alignment replace':'Append upload'} — v1.3 (41,521 ZIPs)`,before:'v1.2',after:'v1.3',district:'NATION'});
+  document.getElementById('validation-panel').style.display='none';
+  renderUploadHistory();
+  renderAuditTable();
+  showToast('Upload complete — alignment updated to v1.3','success');
+}
+
+function dl(filename,rows){
+  const blob=new Blob([rows.join('\n')],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;a.click();
+}
+function exportAuditCSV(){
+  const logs=getVisibleLogs();
+  const csv=['Timestamp,User,Role,Action,Detail,Before,After,District'];
+  logs.forEach(l=>csv.push(`"${l.ts}","${l.user}",${l.role},"${l.action}","${l.detail}","${l.before}","${l.after}",${l.district}`));
+  dl(`audit_log_v1.2_${new Date().toISOString().slice(0,10)}.csv`,csv);
+  showToast('Audit log exported — '+logs.length+' entries','success');
+}
+function exportZTT(){
+  const csv=['ZIP,City,Territory,District,OAM,Rep_ID,Version,Export_Date'];
+  csv.push('10501,Amawalk,ALBANY NY,NORTHEAST,Rep 1,E001,v1.2,'+new Date().toISOString().slice(0,10));
+  csv.push('33136,Miami,FT LAUDERDALE FL,SOUTHEAST,Rep 17,E017,v1.2,'+new Date().toISOString().slice(0,10));
+  csv.push('(41519 more rows in production...)');
+  dl(`ZTT_mapping_v1.2_${new Date().toISOString().slice(0,10)}.csv`,csv);
+  showToast('ZTT mapping exported — 41,521 rows (sample shown)','success');
+}
+function exportHCPs(){
+  const csv=['HCP_ID,City,State,ZIP,Territory,District,OAM,Tier,Index_1,Index_2,Index_3,Index_4'];
+  csv.push('HCP00001485,ALBANY,NY,12206,ALBANY NY,NORTHEAST,Rep 1,Tier 3,939.2,934.4,961.3,947.1');
+  csv.push('(7124 more rows in production...)');
+  dl(`HCP_alignment_v1.2_${new Date().toISOString().slice(0,10)}.csv`,csv);
+  showToast('HCP alignment exported','success');
+}
+function exportConflictCSV(){
+  const csv=['Conflict_Type,Severity,Territories,Affected_HCPs,Linked_Request,Status'];
+  CONFLICTS.forEach(c=>csv.push(`"${c.type}",${c.severity},"${c.territories.join('|')}",${c.affected_hcps},${c.req||'—'},Open`));
+  dl(`conflicts_${new Date().toISOString().slice(0,10)}.csv`,csv);
+  showToast('Conflict report exported','success');
+}
+function exportTerritories(){
+  const csv=['Territory,District,OAM,HCO_Count,ZIP_Count,Index_1,Index_2,Index_3,Index_4'];
+  csv.push('ALBANY NY,NORTHEAST,Rep 1,194,1583,939.2,934.4,961.3,947.1');
+  csv.push('(49 more territories in production...)');
+  dl(`territories_v1.2_${new Date().toISOString().slice(0,10)}.csv`,csv);
+  showToast('Territory index summary exported','success');
+}
+
+function showToast(msg,type='info'){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className='toast '+type;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+applyRole();
+renderUploadHistory();
+renderConflicts();
+renderExportCards();
+</script>
+</body>
+</html>

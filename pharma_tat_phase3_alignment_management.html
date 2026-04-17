@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TerritoryAlign — Phase 3: Alignment Management</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f5f7;--surface:#fff;--surface2:#f5f5f7;--surface3:#eeeef0;
+  --border:#e0e0e0;--border2:#c8c8cc;
+  --text:#1d1d1f;--text2:#555;--text3:#888;--text4:#aaa;
+  --blue:#0071e3;--blue-bg:#e8f0fe;--blue-text:#0058b0;
+  --green:#34c759;--green-bg:#e8f8f0;--green-text:#1a7a3c;
+  --red:#ff3b30;--red-bg:#fde8e8;--red-text:#c0392b;
+  --orange:#ff9500;--orange-bg:#fff3e0;--orange-text:#8a5000;
+  --purple:#9b59b6;--purple-bg:#f3e8fd;--purple-text:#6c3483;
+  --r:8px;--r2:12px;--font:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+/* TOP BAR */
+.topbar{height:52px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:14px;flex-shrink:0}
+.app-logo{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:600;color:var(--text)}
+.logo-icon{width:28px;height:28px;background:var(--blue-bg);border-radius:7px;display:flex;align-items:center;justify-content:center}
+.logo-icon svg{width:16px;height:16px}
+.phase-badge{font-size:10px;padding:3px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text3)}
+.topbar-sep{flex:1}
+.role-switcher{display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 12px 4px 8px;font-size:12px;cursor:pointer}
+.role-dot{width:8px;height:8px;border-radius:50%}
+.role-dot.nsd{background:#ff3b30}.role-dot.dm{background:#ff9500}.role-dot.oam{background:#34c759}
+.top-btn{padding:6px 14px;font-size:12px;font-family:var(--font);background:var(--surface);border:1px solid var(--border2);border-radius:20px;cursor:pointer;color:var(--text2);display:flex;align-items:center;gap:5px}
+.top-btn:hover{border-color:var(--blue);color:var(--blue)}
+.top-btn svg{width:12px;height:12px}
+.top-btn.primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+.top-btn.primary:hover{background:#005cc5;border-color:#005cc5;color:#fff}
+
+/* LAYOUT */
+.app-body{flex:1;display:flex;overflow:hidden}
+.sidebar{width:220px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+
+/* SIDEBAR */
+.sb-role{padding:12px 14px;border-bottom:1px solid var(--border)}
+.sb-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0}
+.av-nsd{background:var(--red-bg);color:var(--red-text)}
+.av-dm{background:var(--orange-bg);color:var(--orange-text)}
+.av-oam{background:var(--green-bg);color:var(--green-text)}
+.sb-name{font-size:12px;font-weight:600;color:var(--text)}
+.sb-subrole{font-size:10px;color:var(--text3)}
+.nav-group{padding:6px 0}
+.nav-label{font-size:10px;font-weight:600;color:var(--text4);text-transform:uppercase;letter-spacing:0.5px;padding:3px 14px}
+.nav-item{display:flex;align-items:center;gap:8px;padding:7px 14px;font-size:12px;color:var(--text2);cursor:pointer;border-left:2px solid transparent}
+.nav-item svg{width:13px;height:13px;flex-shrink:0;opacity:.7}
+.nav-item:hover{color:var(--text);background:var(--surface2)}
+.nav-item.active{color:var(--blue);background:var(--blue-bg);border-left-color:var(--blue);font-weight:500}
+.nav-item.active svg{opacity:1}
+.nav-badge{margin-left:auto;font-size:10px;padding:1px 6px;border-radius:8px;background:var(--red-bg);color:var(--red-text);font-weight:600}
+.sidebar-footer{margin-top:auto;padding:12px 14px;border-top:1px solid var(--border)}
+.logout-btn{font-size:12px;color:var(--text3);cursor:pointer;background:none;border:none;font-family:var(--font);display:flex;align-items:center;gap:6px}
+.logout-btn:hover{color:var(--text)}
+
+/* SUB-TABS */
+.subtab-bar{display:flex;gap:0;padding:0 20px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
+.subtab{padding:10px 16px;font-size:12px;font-family:var(--font);border:none;background:none;cursor:pointer;color:var(--text3);border-bottom:2px solid transparent;display:flex;align-items:center;gap:6px}
+.subtab:hover{color:var(--text)}
+.subtab.active{color:var(--blue);border-bottom-color:var(--blue);font-weight:500}
+.subtab-badge{font-size:10px;padding:1px 6px;border-radius:8px;background:var(--surface2);color:var(--text3)}
+.subtab.active .subtab-badge{background:var(--blue-bg);color:var(--blue-text)}
+
+/* CONTENT */
+.content-area{flex:1;overflow-y:auto;padding:20px}
+.view{display:none}.view.active{display:block}
+
+/* FILTER BAR */
+.filter-bar{display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.filter-bar input,.filter-bar select{font-size:12px;padding:7px 11px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:var(--font);outline:none}
+.filter-bar input{flex:1;min-width:160px}
+.filter-bar input:focus,.filter-bar select:focus{border-color:var(--blue)}
+.filter-count{font-size:12px;color:var(--text3);white-space:nowrap}
+
+/* TABLES */
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden}
+.data-table{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
+.data-table th{text-align:left;padding:9px 12px;font-size:10px;font-weight:600;color:var(--text3);background:var(--surface2);border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:0.4px}
+.data-table td{padding:9px 12px;border-bottom:1px solid var(--border);color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle}
+.data-table tr:last-child td{border-bottom:none}
+.data-table tr:hover td{background:#f9f9fb}
+.data-table tr.selected td{background:var(--blue-bg)}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;font-size:10px;padding:2px 8px;border-radius:10px;font-weight:500;white-space:nowrap}
+.badge-blue{background:var(--blue-bg);color:var(--blue-text)}
+.badge-green{background:var(--green-bg);color:var(--green-text)}
+.badge-red{background:var(--red-bg);color:var(--red-text)}
+.badge-orange{background:var(--orange-bg);color:var(--orange-text)}
+.badge-purple{background:var(--purple-bg);color:var(--purple-text)}
+.badge-gray{background:var(--surface2);color:var(--text3)}
+.tier-1{background:#e8f0fe;color:#0058b0}
+.tier-2{background:#e8f8f0;color:#1a7a3c}
+.tier-3{background:#fff3e0;color:#8a5000}
+.tier-4{background:#fde8e8;color:#c0392b}
+
+/* COLOR DOT */
+.t-dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex-shrink:0}
+
+/* INLINE EDIT */
+.edit-cell{display:flex;align-items:center;gap:6px}
+.inline-select{font-size:11px;padding:3px 7px;background:var(--surface);border:1px solid var(--blue);border-radius:5px;color:var(--text);font-family:var(--font);outline:none;cursor:pointer}
+.edit-save-btn{padding:3px 9px;font-size:10px;font-family:var(--font);background:var(--blue);color:#fff;border:none;border-radius:5px;cursor:pointer;font-weight:500}
+.edit-save-btn:hover{background:#005cc5}
+.edit-cancel-btn{padding:3px 7px;font-size:10px;font-family:var(--font);background:none;border:1px solid var(--border2);border-radius:5px;cursor:pointer;color:var(--text2)}
+
+/* ACTION BUTTONS */
+.action-btn{padding:4px 10px;font-size:10px;font-family:var(--font);background:var(--surface);border:1px solid var(--border2);border-radius:5px;cursor:pointer;color:var(--text2);white-space:nowrap}
+.action-btn:hover{border-color:var(--blue);color:var(--blue)}
+.action-btn.danger:hover{border-color:var(--red);color:var(--red-text)}
+.action-btn.success{background:var(--green-bg);border-color:var(--green);color:var(--green-text)}
+
+/* BAR */
+.idx-bar-wrap{display:flex;align-items:center;gap:6px}
+.idx-bar-bg{flex:1;height:4px;background:var(--surface3);border-radius:2px;overflow:hidden;min-width:40px}
+.idx-bar-fill{height:100%;border-radius:2px}
+
+/* METRIC CARDS */
+.metrics-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:20px}
+.metric-card{background:var(--surface2);border-radius:var(--r);padding:14px 16px}
+.metric-label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:5px}
+.metric-val{font-size:26px;font-weight:600;color:var(--text);line-height:1}
+.metric-sub{font-size:10px;color:var(--text3);margin-top:3px}
+.metric-sub.up{color:var(--green-text)}.metric-sub.warn{color:var(--orange-text)}.metric-sub.danger{color:var(--red-text)}
+
+/* DETAIL PANEL (slide-in right) */
+.detail-overlay{display:none;position:absolute;inset:0;background:rgba(0,0,0,0.3);z-index:100}
+.detail-overlay.open{display:block}
+.detail-panel{position:absolute;top:0;right:0;bottom:0;width:400px;background:var(--surface);border-left:1px solid var(--border);overflow-y:auto;transform:translateX(0);z-index:101}
+.detail-header{padding:16px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.detail-close{margin-left:auto;background:none;border:none;cursor:pointer;font-size:18px;color:var(--text3);padding:2px 6px;border-radius:4px}
+.detail-close:hover{background:var(--surface2);color:var(--text)}
+.detail-body{padding:18px}
+.detail-section{margin-bottom:20px}
+.detail-section-title{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;padding-bottom:4px;border-bottom:1px solid var(--border)}
+.detail-row{display:flex;justify-content:space-between;align-items:flex-start;padding:5px 0;border-bottom:1px solid var(--bg);font-size:12px}
+.detail-row:last-child{border-bottom:none}
+.detail-key{color:var(--text3);min-width:100px}
+.detail-val{font-weight:500;color:var(--text);text-align:right;flex:1}
+.idx-detail-row{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:11px}
+.idx-name{color:var(--text3);min-width:50px}
+.idx-val{min-width:44px;text-align:right;font-weight:500;font-size:11px}
+.detail-action-row{display:flex;gap:8px;margin-top:14px}
+.detail-action-btn{flex:1;padding:8px;font-size:12px;font-family:var(--font);background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);cursor:pointer;color:var(--text2);font-weight:500}
+.detail-action-btn:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-bg)}
+.detail-action-btn.primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+.detail-action-btn.primary:hover{background:#005cc5}
+
+/* MODAL */
+.modal-backdrop{display:none;position:absolute;inset:0;background:rgba(0,0,0,0.4);z-index:200;align-items:center;justify-content:center}
+.modal-backdrop.open{display:flex}
+.modal{background:var(--surface);border-radius:var(--r2);width:460px;max-height:90vh;overflow-y:auto;padding:22px}
+.modal-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:16px}
+.modal-field{margin-bottom:12px}
+.modal-field label{font-size:10px;font-weight:600;color:var(--text3);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.3px}
+.modal-field input,.modal-field select,.modal-field textarea{width:100%;font-size:12px;padding:8px 11px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:var(--font);outline:none}
+.modal-field input:focus,.modal-field select:focus,.modal-field textarea:focus{border-color:var(--blue)}
+.modal-field textarea{resize:vertical;min-height:64px}
+.ba-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.ba-box{background:var(--surface2);border-radius:var(--r);padding:10px}
+.ba-label{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:4px}
+.ba-label.before{color:var(--red-text)}.ba-label.after{color:var(--green-text)}
+.ba-val{font-size:11px;color:var(--text)}
+.sim-panel{background:var(--surface2);border-radius:var(--r);padding:12px;margin-bottom:12px}
+.sim-title{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.3px;margin-bottom:8px}
+.sim-row{display:flex;justify-content:space-between;font-size:11px;padding:3px 0}
+.sim-key{color:var(--text3)}
+.sim-val{font-weight:600}
+.sim-val.up{color:var(--red-text)}.sim-val.down{color:var(--green-text)}.sim-val.neutral{color:var(--text3)}
+.warn-box{background:var(--orange-bg);border:1px solid #f5c842;border-radius:var(--r);padding:8px 11px;margin-bottom:12px;font-size:11px;color:var(--orange-text);display:flex;align-items:flex-start;gap:7px}
+.modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.btn-cancel{padding:8px 16px;font-size:12px;font-family:var(--font);background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);cursor:pointer;color:var(--text)}
+.btn-submit{padding:8px 16px;font-size:12px;font-weight:600;font-family:var(--font);background:var(--blue);color:#fff;border:none;border-radius:var(--r);cursor:pointer}
+.btn-submit:hover{background:#005cc5}
+.btn-danger{padding:8px 16px;font-size:12px;font-weight:600;font-family:var(--font);background:var(--red-bg);color:var(--red-text);border:1px solid var(--red);border-radius:var(--r);cursor:pointer}
+
+/* TOAST */
+.toast{position:absolute;bottom:18px;right:18px;background:var(--text);color:#fff;border-radius:var(--r);padding:10px 16px;font-size:12px;opacity:0;transition:opacity 0.2s;pointer-events:none;z-index:999;max-width:280px}
+.toast.show{opacity:1}
+.toast.success{background:#1a7a3c}
+.toast.warn{background:var(--orange-text)}
+
+/* CONFLICT WARNING BANNER */
+.conflict-banner{background:var(--orange-bg);border:1px solid #f5c842;border-radius:var(--r);padding:8px 14px;margin-bottom:14px;font-size:11px;color:var(--orange-text);display:flex;align-items:center;gap:8px}
+.conflict-banner svg{width:14px;height:14px;flex-shrink:0}
+
+/* EMPTY STATE */
+.empty-state{text-align:center;padding:48px 20px;color:var(--text3)}
+.empty-state svg{width:40px;height:40px;margin:0 auto 12px;opacity:.3}
+.empty-state p{font-size:13px}
+
+/* PAGINATION */
+.pagination{display:flex;align-items:center;justify-content:space-between;padding:10px 0;font-size:11px;color:var(--text3)}
+.pag-btns{display:flex;gap:4px}
+.pag-btn{padding:4px 10px;font-size:11px;font-family:var(--font);background:var(--surface);border:1px solid var(--border);border-radius:5px;cursor:pointer;color:var(--text2)}
+.pag-btn:hover{border-color:var(--blue);color:var(--blue)}
+.pag-btn.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+.pag-btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* CONFLICT INDICATORS */
+.conflict-dot{width:7px;height:7px;border-radius:50%;background:var(--orange);display:inline-block;margin-right:4px;flex-shrink:0}
+
+/* RESPONSIVE OVERFLOW NOTE */
+@media(max-width:900px){.metrics-row{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="app-logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="5.5" stroke="var(--blue)" stroke-width="1.4"/><path d="M4 8 Q6 5.5 8 8 Q10 10.5 12 8" stroke="var(--blue)" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg>
+    </div>
+    TerritoryAlign
+  </div>
+  <span class="phase-badge">Phase 3 — Alignment Management</span>
+  <div class="topbar-sep"></div>
+  <div class="role-switcher" onclick="cycleRole()">
+    <span class="role-dot" id="role-dot"></span>
+    <span id="role-label">NSD</span>
+    <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 3.5l3 3 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+  </div>
+  <button class="top-btn" onclick="exportZTT()">
+    <svg viewBox="0 0 16 16" fill="none"><path d="M8 3v8M5 8l3 3 3-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M2 13h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+    Export ZTT
+  </button>
+  <button class="top-btn primary" id="new-mapping-btn" onclick="openNewMappingModal()">
+    <svg viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+    New mapping
+  </button>
+</div>
+
+<div class="app-body" style="position:relative">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sb-role">
+      <div style="display:flex;align-items:center;gap:9px">
+        <div class="sb-avatar" id="sb-av"></div>
+        <div>
+          <div class="sb-name" id="sb-name"></div>
+          <div class="sb-subrole" id="sb-subrole"></div>
+        </div>
+      </div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-label">Overview</div>
+      <div class="nav-item" onclick="window.location.href='#'">
+        <svg viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.2"/><rect x="9" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.2"/><rect x="1" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.2"/><rect x="9" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.2"/></svg>
+        Dashboard
+      </div>
+      <div class="nav-item" onclick="showToast('Map view — Phase 2','')">
+        <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="7" r="4" stroke="currentColor" stroke-width="1.2"/><circle cx="8" cy="7" r="1.5" fill="currentColor"/><path d="M8 11v4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        Map view
+      </div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-label">Alignment</div>
+      <div class="nav-item active" onclick="setView('territories',this)">
+        <svg viewBox="0 0 16 16" fill="none"><path d="M2 4h12M2 8h8M2 12h10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        Territories
+      </div>
+      <div class="nav-item" onclick="setView('hcps',this)">
+        <svg viewBox="0 0 16 16" fill="none"><rect x="2" y="4" width="12" height="9" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M5 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1" stroke="currentColor" stroke-width="1.2"/><path d="M8 7v4M6 9h4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        HCPs
+      </div>
+      <div class="nav-item" onclick="setView('zips',this)">
+        <svg viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.2"/><path d="M5 8h6M8 5v6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        ZIP mappings
+      </div>
+      <div class="nav-item" onclick="setView('roster',this)">
+        <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="3" stroke="currentColor" stroke-width="1.2"/><path d="M2 14c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        Roster
+      </div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-label">Workflow</div>
+      <div class="nav-item" onclick="showToast('Requests — Phase 4','')">
+        <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.2"/><path d="M5.5 8l2 2 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Requests
+        <span class="nav-badge">3</span>
+      </div>
+      <div class="nav-item" onclick="showToast('Audit log — Phase 5','')">
+        <svg viewBox="0 0 16 16" fill="none"><rect x="3" y="2" width="10" height="12" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M5.5 6h5M5.5 9h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        Audit log
+      </div>
+    </div>
+    <div class="nav-group" id="admin-nav">
+      <div class="nav-label">Admin</div>
+      <div class="nav-item" onclick="showToast('Bulk upload — Phase 5','')">
+        <svg viewBox="0 0 16 16" fill="none"><path d="M8 10V3M5 6l3-3 3 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 13h12" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        Bulk upload
+      </div>
+    </div>
+    <div class="sidebar-footer">
+      <button class="logout-btn">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M6 14H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h3M11 11l3-3-3-3M14 8H6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Sign out
+      </button>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="main">
+
+    <!-- SUB-TABS -->
+    <div class="subtab-bar" id="subtab-bar">
+      <button class="subtab active" id="tab-territories" onclick="switchSubTab('territories',this)">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M2 8h8M2 12h10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        Territories
+        <span class="subtab-badge" id="terr-count-badge">50</span>
+      </button>
+      <button class="subtab" id="tab-hcps" onclick="switchSubTab('hcps',this)">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><rect x="2" y="4" width="12" height="9" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M8 7v4M6 9h4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        HCPs
+        <span class="subtab-badge" id="hcp-count-badge">7,125</span>
+      </button>
+      <button class="subtab" id="tab-zips" onclick="switchSubTab('zips',this)">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.2"/></svg>
+        ZIP mappings
+        <span class="subtab-badge">41,521</span>
+      </button>
+      <button class="subtab" id="tab-roster" onclick="switchSubTab('roster',this)">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="3" stroke="currentColor" stroke-width="1.2"/><path d="M2 14c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        Roster
+        <span class="subtab-badge">56</span>
+      </button>
+    </div>
+
+    <div class="content-area" style="position:relative">
+
+      <!-- TERRITORIES VIEW -->
+      <div id="view-territories" class="view active">
+        <div class="metrics-row" id="terr-metrics"></div>
+        <div id="terr-conflict-banner" class="conflict-banner" style="display:none">
+          <svg viewBox="0 0 16 16" fill="none"><path d="M8 2L15 14H1L8 2z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M8 7v3M8 11.5v.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+          <span id="terr-conflict-text"></span>
+        </div>
+        <div class="filter-bar">
+          <input id="terr-search" placeholder="Search territory, district, or rep..." oninput="renderTerrTable()">
+          <select id="terr-district-f" onchange="renderTerrTable()">
+            <option value="">All districts</option>
+            <option>NORTHEAST</option><option>SOUTHEAST</option><option>NORTH CENTRAL</option><option>SOUTH CENTRAL</option><option>WEST</option>
+          </select>
+          <select id="terr-idx-f" onchange="renderTerrTable()">
+            <option value="idx3">Index 3 (Start Forms)</option>
+            <option value="idx1">Index 1 (Pop + Start)</option>
+            <option value="idx2">Index 2 (Prevalence + Start)</option>
+            <option value="idx4">Index 4 (Completed)</option>
+          </select>
+          <select id="terr-vacant-f" onchange="renderTerrTable()">
+            <option value="">All territories</option>
+            <option value="vacant">Vacant only</option>
+            <option value="active">Active only</option>
+          </select>
+          <span class="filter-count" id="terr-filter-count"></span>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr>
+              <th style="width:4%"></th>
+              <th style="width:20%">Territory</th>
+              <th style="width:14%">District</th>
+              <th style="width:16%">OAM (rep)</th>
+              <th style="width:8%">HCPs</th>
+              <th style="width:8%">ZIPs</th>
+              <th style="width:20%">Active index</th>
+              <th style="width:10%">Actions</th>
+            </tr></thead>
+            <tbody id="terr-tbody"></tbody>
+          </table>
+        </div>
+        <div class="pagination" id="terr-pagination"></div>
+      </div>
+
+      <!-- HCPs VIEW -->
+      <div id="view-hcps" class="view">
+        <div class="metrics-row" id="hcp-metrics"></div>
+        <div class="filter-bar">
+          <input id="hcp-search" placeholder="Search HCP ID, city, ZIP..." oninput="renderHCPTable()">
+          <select id="hcp-terr-f" onchange="renderHCPTable()">
+            <option value="">All territories</option>
+          </select>
+          <select id="hcp-district-f" onchange="renderHCPTable()">
+            <option value="">All districts</option>
+            <option>NORTHEAST</option><option>SOUTHEAST</option><option>NORTH CENTRAL</option><option>SOUTH CENTRAL</option><option>WEST</option>
+          </select>
+          <select id="hcp-tier-f" onchange="renderHCPTable()">
+            <option value="">All tiers</option>
+            <option>Tier 1</option><option>Tier 2</option><option>Tier 3</option><option>Tier 4</option>
+          </select>
+          <span class="filter-count" id="hcp-filter-count"></span>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr>
+              <th style="width:18%">HCP ID</th>
+              <th style="width:16%">City / State</th>
+              <th style="width:8%">ZIP</th>
+              <th style="width:4%"></th>
+              <th style="width:18%">Territory</th>
+              <th style="width:10%">Tier</th>
+              <th style="width:10%">Index 3</th>
+              <th style="width:16%">Actions</th>
+            </tr></thead>
+            <tbody id="hcp-tbody"></tbody>
+          </table>
+        </div>
+        <div class="pagination" id="hcp-pagination"></div>
+      </div>
+
+      <!-- ZIPs VIEW -->
+      <div id="view-zips" class="view">
+        <div class="metrics-row" id="zip-metrics"></div>
+        <div id="zip-conflict-banner" class="conflict-banner" style="display:none">
+          <svg viewBox="0 0 16 16" fill="none"><path d="M8 2L15 14H1L8 2z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M8 7v3M8 11.5v.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+          <span>1 ZIP code (89511) is mapped to multiple territories — Sacramento, CA and Reno, NV. REQ-040 pending resolution.</span>
+        </div>
+        <div class="filter-bar">
+          <input id="zip-search" placeholder="Search ZIP code or city..." oninput="renderZIPTable()">
+          <select id="zip-terr-f" onchange="renderZIPTable()">
+            <option value="">All territories</option>
+          </select>
+          <select id="zip-district-f" onchange="renderZIPTable()">
+            <option value="">All districts</option>
+            <option>NORTHEAST</option><option>SOUTHEAST</option><option>NORTH CENTRAL</option><option>SOUTH CENTRAL</option><option>WEST</option>
+          </select>
+          <span class="filter-count" id="zip-filter-count"></span>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr>
+              <th style="width:12%">ZIP code</th>
+              <th style="width:20%">City</th>
+              <th style="width:4%"></th>
+              <th style="width:20%">Territory</th>
+              <th style="width:14%">District</th>
+              <th style="width:16%">OAM</th>
+              <th style="width:14%">Actions</th>
+            </tr></thead>
+            <tbody id="zip-tbody"></tbody>
+          </table>
+        </div>
+        <div class="pagination" id="zip-pagination"></div>
+      </div>
+
+      <!-- ROSTER VIEW -->
+      <div id="view-roster" class="view">
+        <div class="metrics-row" id="roster-metrics"></div>
+        <div class="filter-bar">
+          <input id="roster-search" placeholder="Search by name or ID..." oninput="renderRosterTable()">
+          <select id="roster-title-f" onchange="renderRosterTable()">
+            <option value="">All roles</option>
+            <option value="NSD">NSD</option>
+            <option value="DM">DM</option>
+            <option value="OAM">OAM</option>
+          </select>
+          <select id="roster-district-f" onchange="renderRosterTable()">
+            <option value="">All districts</option>
+            <option>NORTHEAST</option><option>SOUTHEAST</option><option>NORTH CENTRAL</option><option>SOUTH CENTRAL</option><option>WEST</option>
+          </select>
+          <span class="filter-count" id="roster-filter-count"></span>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr>
+              <th style="width:12%">ID</th>
+              <th style="width:20%">Name</th>
+              <th style="width:10%">Role</th>
+              <th style="width:22%">Territory / District</th>
+              <th style="width:14%">District</th>
+              <th style="width:14%">Status</th>
+              <th style="width:8%">Actions</th>
+            </tr></thead>
+            <tbody id="roster-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- DETAIL PANEL OVERLAY -->
+      <div class="detail-overlay" id="detail-overlay" onclick="closeDetail()">
+        <div class="detail-panel" id="detail-panel" onclick="event.stopPropagation()">
+          <div class="detail-header" id="detail-header"></div>
+          <div class="detail-body" id="detail-body"></div>
+        </div>
+      </div>
+
+      <!-- MODAL -->
+      <div class="modal-backdrop" id="modal-backdrop">
+        <div class="modal" id="modal-content"></div>
+      </div>
+
+      <!-- TOAST -->
+      <div class="toast" id="toast"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const TERRITORIES=[{name:"ALBANY, NY",district:"NORTHEAST",rep_id:"E001",rep_name:"Rep 1",hco_count:194,zip_count:1583,idx1:939.2,idx2:934.4,idx3:961.3,idx4:947.1,color:"#378ADD"},{name:"ATLANTA E, GA",district:"SOUTHEAST",rep_id:"E002",rep_name:"Rep 2",hco_count:121,zip_count:382,idx1:934.4,idx2:915.5,idx3:943.4,idx4:959.8,color:"#1D9E75"},{name:"ATLANTA W, GA",district:"SOUTHEAST",rep_id:"E003",rep_name:"Rep 3",hco_count:113,zip_count:396,idx1:874.4,idx2:878.0,idx3:860.5,idx4:845.7,color:"#D85A30"},{name:"BIRMINGHAM, AL",district:"SOUTHEAST",rep_id:"E004",rep_name:"Rep 4",hco_count:159,zip_count:973,idx1:897.0,idx2:832.2,idx3:955.6,idx4:918.6,color:"#7F77DD"},{name:"BOSTON, MA",district:"NORTHEAST",rep_id:"E005",rep_name:"Rep 5",hco_count:308,zip_count:2197,idx1:981.2,idx2:1133.8,idx3:812.5,idx4:747.5,color:"#EF9F27"},{name:"BROOKLYN, NY",district:"NORTHEAST",rep_id:"E006",rep_name:"Rep 6",hco_count:184,zip_count:416,idx1:848.0,idx2:1169.6,idx3:506.1,idx4:487.8,color:"#D4537E"},{name:"CHARLESTON, SC",district:"SOUTHEAST",rep_id:"E008",rep_name:"Rep 8",hco_count:110,zip_count:458,idx1:895.9,idx2:877.8,idx3:927.6,idx4:931.3,color:"#39b54a"},{name:"CHARLOTTE, NC",district:"SOUTHEAST",rep_id:"E009",rep_name:"Rep 9",hco_count:138,zip_count:900,idx1:872.7,idx2:913.2,idx3:824.4,idx4:820.4,color:"#e84393"},{name:"CHICAGO N, IL",district:"NORTH CENTRAL",rep_id:"E010",rep_name:"Rep 10",hco_count:139,zip_count:420,idx1:845.0,idx2:916.9,idx3:755.2,idx4:766.6,color:"#00bcd4"},{name:"CHICAGO S, IL",district:"NORTH CENTRAL",rep_id:"E011",rep_name:"Rep 11",hco_count:169,zip_count:526,idx1:1276.6,idx2:1278.7,idx3:1262.5,idx4:1276.5,color:"#ff5722"},{name:"CINCINNATI, OH",district:"NORTHEAST",rep_id:"E012",rep_name:"Rep 12",hco_count:134,zip_count:656,idx1:946.5,idx2:926.9,idx3:971.5,idx4:969.3,color:"#9c27b0"},{name:"COLUMBUS, OH",district:"NORTHEAST",rep_id:"E013",rep_name:"Rep 13",hco_count:176,zip_count:1224,idx1:1257.4,idx2:1176.1,idx3:1339.9,idx4:1336.7,color:"#3f51b5"},{name:"DALLAS, TX",district:"SOUTH CENTRAL",rep_id:"E048",rep_name:"Vacant Territory 1",hco_count:180,zip_count:770,idx1:1038.0,idx2:1106.8,idx3:954.1,idx4:950.3,color:"#009688"},{name:"DENVER, CO",district:"WEST",rep_id:"E015",rep_name:"Rep 15",hco_count:159,zip_count:990,idx1:958.8,idx2:994.6,idx3:929.9,idx4:928.1,color:"#ff9800"},{name:"DETROIT N, MI",district:"NORTH CENTRAL",rep_id:"E016",rep_name:"Rep 16",hco_count:176,zip_count:888,idx1:1222.2,idx2:1187.1,idx3:1261.3,idx4:1260.7,color:"#795548"},{name:"FORT WORTH, TX",district:"SOUTH CENTRAL",rep_id:"E014",rep_name:"Rep 14",hco_count:95,zip_count:563,idx1:1192.9,idx2:1078.6,idx3:1312.5,idx4:1346.2,color:"#607d8b"},{name:"FT LAUDERDALE, FL",district:"SOUTHEAST",rep_id:"E017",rep_name:"Rep 17",hco_count:135,zip_count:433,idx1:1015.3,idx2:949.0,idx3:1106.4,idx4:1137.2,color:"#e91e63"},{name:"HOUSTON, TX",district:"SOUTH CENTRAL",rep_id:"E018",rep_name:"Rep 18",hco_count:153,zip_count:419,idx1:1148.2,idx2:1194.2,idx3:1103.6,idx4:1111.8,color:"#2196f3"},{name:"INLAND EMPIRE, CA",district:"WEST",rep_id:"E019",rep_name:"Rep 19",hco_count:114,zip_count:434,idx1:806.2,idx2:925.4,idx3:676.7,idx4:665.2,color:"#4caf50"},{name:"JACKSONVILLE, FL",district:"SOUTHEAST",rep_id:"E020",rep_name:"Rep 20",hco_count:90,zip_count:419,idx1:858.5,idx2:806.4,idx3:941.4,idx4:962.9,color:"#ff6347"},{name:"LOS ANGELES E, CA",district:"WEST",rep_id:"E021",rep_name:"Rep 21",hco_count:110,zip_count:244,idx1:1101.1,idx2:1027.7,idx3:1187.5,idx4:1219.5,color:"#8bc34a"},{name:"LOS ANGELES W, CA",district:"WEST",rep_id:"E050",rep_name:"Vacant Territory 3",hco_count:120,zip_count:261,idx1:1041.1,idx2:947.2,idx3:1135.5,idx4:1156.2,color:"#00acc1"},{name:"LOUISVILLE, KY",district:"SOUTH CENTRAL",rep_id:"E022",rep_name:"Rep 22",hco_count:158,zip_count:2155,idx1:1284.6,idx2:1182.8,idx3:1398.8,idx4:1425.4,color:"#ab47bc"},{name:"MANHATTAN, NY",district:"NORTHEAST",rep_id:"E023",rep_name:"Rep 23",hco_count:137,zip_count:219,idx1:816.0,idx2:950.0,idx3:676.4,idx4:668.4,color:"#26a69a"},{name:"MILWAUKEE, WI",district:"NORTH CENTRAL",rep_id:"E024",rep_name:"Rep 24",hco_count:139,zip_count:927,idx1:927.8,idx2:903.8,idx3:958.8,idx4:915.4,color:"#ffa726"},{name:"MINNEAPOLIS, MN",district:"NORTH CENTRAL",rep_id:"E025",rep_name:"Rep 25",hco_count:168,zip_count:1590,idx1:1063.4,idx2:1029.6,idx3:1113.4,idx4:1115.0,color:"#ef5350"},{name:"NASHVILLE, TN",district:"SOUTH CENTRAL",rep_id:"E026",rep_name:"Rep 26",hco_count:185,zip_count:754,idx1:1134.4,idx2:1198.3,idx3:1068.6,idx4:1051.6,color:"#42a5f5"},{name:"NEW JERSEY, NJ",district:"NORTHEAST",rep_id:"E027",rep_name:"Rep 27",hco_count:186,zip_count:526,idx1:929.3,idx2:1096.8,idx3:740.6,idx4:728.5,color:"#66bb6a"},{name:"NEW ORLEANS, LA",district:"SOUTH CENTRAL",rep_id:"E028",rep_name:"Rep 28",hco_count:134,zip_count:1155,idx1:1255.2,idx2:1098.1,idx3:1440.2,idx4:1479.3,color:"#ec407a"},{name:"ORANGE COUNTY, CA",district:"WEST",rep_id:"E029",rep_name:"Rep 29",hco_count:116,zip_count:195,idx1:861.8,idx2:955.6,idx3:761.9,idx4:738.0,color:"#7e57c2"},{name:"PALM BEACH, FL",district:"SOUTHEAST",rep_id:"E030",rep_name:"Rep 30",hco_count:111,zip_count:387,idx1:936.3,idx2:913.1,idx3:956.1,idx4:959.8,color:"#26c6da"},{name:"PENNSYLVANIA, PA",district:"NORTHEAST",rep_id:"E007",rep_name:"Rep 7",hco_count:173,zip_count:1736,idx1:1205.0,idx2:1149.8,idx3:1259.1,idx4:1232.2,color:"#d4e157"},{name:"PEORIA, IL",district:"NORTH CENTRAL",rep_id:"E031",rep_name:"Rep 31",hco_count:154,zip_count:1957,idx1:1175.4,idx2:1076.8,idx3:1286.6,idx4:1311.4,color:"#ff7043"},{name:"PHILADELPHIA, PA",district:"NORTHEAST",rep_id:"E032",rep_name:"Rep 32",hco_count:185,zip_count:800,idx1:859.6,idx2:962.5,idx3:743.9,idx4:715.9,color:"#8d6e63"},{name:"PHOENIX E, AZ",district:"WEST",rep_id:"E033",rep_name:"Rep 33",hco_count:106,zip_count:543,idx1:880.1,idx2:853.3,idx3:895.0,idx4:871.1,color:"#78909c"},{name:"PHOENIX W, AZ",district:"WEST",rep_id:"E049",rep_name:"Vacant Territory 2",hco_count:162,zip_count:655,idx1:1202.8,idx2:1252.8,idx3:1142.5,idx4:1140.3,color:"#5c6bc0"},{name:"PORTLAND, OR",district:"NORTH CENTRAL",rep_id:"E034",rep_name:"Rep 34",hco_count:108,zip_count:658,idx1:732.2,idx2:764.9,idx3:688.3,idx4:674.7,color:"#29b6f6"},{name:"RALEIGH, NC",district:"SOUTHEAST",rep_id:"E035",rep_name:"Rep 35",hco_count:120,zip_count:556,idx1:829.2,idx2:815.8,idx3:843.8,idx4:833.1,color:"#9ccc65"},{name:"RICHMOND, VA",district:"SOUTHEAST",rep_id:"E036",rep_name:"Rep 36",hco_count:124,zip_count:598,idx1:744.8,idx2:811.3,idx3:669.4,idx4:671.5,color:"#f06292"},{name:"SACRAMENTO, CA",district:"WEST",rep_id:"E037",rep_name:"Rep 37",hco_count:95,zip_count:723,idx1:930.5,idx2:844.2,idx3:1016.9,idx4:1032.6,color:"#4dd0e1"},{name:"SAINT LOUIS, MO",district:"SOUTH CENTRAL",rep_id:"E038",rep_name:"Rep 38",hco_count:114,zip_count:1490,idx1:955.9,idx2:890.6,idx3:1025.7,idx4:1054.8,color:"#aed581"},{name:"SALT LAKE CITY, UT",district:"NORTH CENTRAL",rep_id:"E039",rep_name:"Rep 39",hco_count:113,zip_count:1304,idx1:724.8,idx2:756.1,idx3:688.3,idx4:646.2,color:"#4db6ac"},{name:"SAN ANTONIO, TX",district:"SOUTH CENTRAL",rep_id:"E040",rep_name:"Rep 40",hco_count:85,zip_count:505,idx1:1123.6,idx2:1021.2,idx3:1227.8,idx4:1273.4,color:"#f48fb1"},{name:"SAN FRANCISCO, CA",district:"WEST",rep_id:"E041",rep_name:"Rep 41",hco_count:138,zip_count:441,idx1:1105.8,idx2:1101.9,idx3:1099.5,idx4:1108.6,color:"#ce93d8"},{name:"SAN JOSE, CA",district:"WEST",rep_id:"E042",rep_name:"Rep 42",hco_count:122,zip_count:398,idx1:1299.1,idx2:1189.9,idx3:1406.2,idx4:1441.2,color:"#ffca28"},{name:"SEATTLE, WA",district:"NORTH CENTRAL",rep_id:"E043",rep_name:"Rep 43",hco_count:156,zip_count:826,idx1:996.6,idx2:996.2,idx3:990.7,idx4:997.8,color:"#ff8a65"},{name:"TAMPA, FL",district:"SOUTHEAST",rep_id:"E044",rep_name:"Rep 44",hco_count:143,zip_count:507,idx1:736.6,idx2:831.2,idx3:629.0,idx4:617.7,color:"#a1887f"},{name:"TULSA, OK",district:"SOUTH CENTRAL",rep_id:"E045",rep_name:"Rep 45",hco_count:121,zip_count:1558,idx1:1152.6,idx2:992.6,idx3:1343.6,idx4:1362.1,color:"#90a4ae"},{name:"WASHINGTON, DC",district:"NORTHEAST",rep_id:"E046",rep_name:"Rep 46",hco_count:183,zip_count:1580,idx1:1121.4,idx2:1238.4,idx3:983.3,idx4:956.6,color:"#80cbc4"},{name:"WICHITA, KS",district:"SOUTH CENTRAL",rep_id:"E047",rep_name:"Rep 47",hco_count:107,zip_count:1226,idx1:1055.4,idx2:945.0,idx3:1204.2,idx4:1219.5,color:"#ffe082"}];
+
+const ROSTER=[{id:"E001",name:"Rep 1",title:"OAM",territory:"ALBANY, NY"},{id:"E002",name:"Rep 2",title:"OAM",territory:"ATLANTA E, GA"},{id:"E003",name:"Rep 3",title:"OAM",territory:"ATLANTA W, GA"},{id:"E004",name:"Rep 4",title:"OAM",territory:"BIRMINGHAM, AL"},{id:"E005",name:"Rep 5",title:"OAM",territory:"BOSTON, MA"},{id:"E006",name:"Rep 6",title:"OAM",territory:"BROOKLYN, NY"},{id:"E007",name:"Rep 7",title:"OAM",territory:"PENNSYLVANIA, PA"},{id:"E008",name:"Rep 8",title:"OAM",territory:"CHARLESTON, SC"},{id:"E009",name:"Rep 9",title:"OAM",territory:"CHARLOTTE, NC"},{id:"E010",name:"Rep 10",title:"OAM",territory:"CHICAGO N, IL"},{id:"E011",name:"Rep 11",title:"OAM",territory:"CHICAGO S, IL"},{id:"E012",name:"Rep 12",title:"OAM",territory:"CINCINNATI, OH"},{id:"E013",name:"Rep 13",title:"OAM",territory:"COLUMBUS, OH"},{id:"E014",name:"Rep 14",title:"OAM",territory:"FORT WORTH, TX"},{id:"E015",name:"Rep 15",title:"OAM",territory:"DENVER, CO"},{id:"E016",name:"Rep 16",title:"OAM",territory:"DETROIT N, MI"},{id:"E017",name:"Rep 17",title:"OAM",territory:"FT LAUDERDALE, FL"},{id:"E018",name:"Rep 18",title:"OAM",territory:"HOUSTON, TX"},{id:"E019",name:"Rep 19",title:"OAM",territory:"INLAND EMPIRE, CA"},{id:"E020",name:"Rep 20",title:"OAM",territory:"JACKSONVILLE, FL"},{id:"E021",name:"Rep 21",title:"OAM",territory:"LOS ANGELES E, CA"},{id:"E022",name:"Rep 22",title:"OAM",territory:"LOUISVILLE, KY"},{id:"E023",name:"Rep 23",title:"OAM",territory:"MANHATTAN, NY"},{id:"E024",name:"Rep 24",title:"OAM",territory:"MILWAUKEE, WI"},{id:"E025",name:"Rep 25",title:"OAM",territory:"MINNEAPOLIS, MN"},{id:"E026",name:"Rep 26",title:"OAM",territory:"NASHVILLE, TN"},{id:"E027",name:"Rep 27",title:"OAM",territory:"NEW JERSEY, NJ"},{id:"E028",name:"Rep 28",title:"OAM",territory:"NEW ORLEANS, LA"},{id:"E029",name:"Rep 29",title:"OAM",territory:"ORANGE COUNTY, CA"},{id:"E030",name:"Rep 30",title:"OAM",territory:"PALM BEACH, FL"},{id:"E031",name:"Rep 31",title:"OAM",territory:"PEORIA, IL"},{id:"E032",name:"Rep 32",title:"OAM",territory:"PHILADELPHIA, PA"},{id:"E033",name:"Rep 33",title:"OAM",territory:"PHOENIX E, AZ"},{id:"E034",name:"Rep 34",title:"OAM",territory:"PORTLAND, OR"},{id:"E035",name:"Rep 35",title:"OAM",territory:"RALEIGH, NC"},{id:"E036",name:"Rep 36",title:"OAM",territory:"RICHMOND, VA"},{id:"E037",name:"Rep 37",title:"OAM",territory:"SACRAMENTO, CA"},{id:"E038",name:"Rep 38",title:"OAM",territory:"SAINT LOUIS, MO"},{id:"E039",name:"Rep 39",title:"OAM",territory:"SALT LAKE CITY, UT"},{id:"E040",name:"Rep 40",title:"OAM",territory:"SAN ANTONIO, TX"},{id:"E041",name:"Rep 41",title:"OAM",territory:"SAN FRANCISCO, CA"},{id:"E042",name:"Rep 42",title:"OAM",territory:"SAN JOSE, CA"},{id:"E043",name:"Rep 43",title:"OAM",territory:"SEATTLE, WA"},{id:"E044",name:"Rep 44",title:"OAM",territory:"TAMPA, FL"},{id:"E045",name:"Rep 45",title:"OAM",territory:"TULSA, OK"},{id:"E046",name:"Rep 46",title:"OAM",territory:"WASHINGTON, DC"},{id:"E047",name:"Rep 47",title:"OAM",territory:"WICHITA, KS"},{id:"E048",name:"Vacant Territory 1",title:"OAM",territory:"DALLAS, TX"},{id:"E049",name:"Vacant Territory 2",title:"OAM",territory:"PHOENIX W, AZ"},{id:"E050",name:"Vacant Territory 3",title:"OAM",territory:"LOS ANGELES W, CA"},{id:"E051",name:"District Manager 1",title:"DM",territory:"NORTHEAST"},{id:"E052",name:"District Manager 2",title:"DM",territory:"SOUTH CENTRAL"},{id:"E053",name:"District Manager 3",title:"DM",territory:"NORTH CENTRAL"},{id:"E054",name:"District Manager 4",title:"DM",territory:"WEST"},{id:"E055",name:"District Manager 5",title:"DM",territory:"NORTH CENTRAL"},{id:"E056",name:"National Sales Director",title:"NSD",territory:"NATION"}];
+
+const HCP_SAMPLE={"FT LAUDERDALE, FL":[{id:"HCP00000013",city:"MIAMI",state:"FL",zip:"33176",tier:"Tier 1",i1:3.2,i2:6.2,i3:0,i4:0},{id:"HCP00000128",city:"MIAMI",state:"FL",zip:"33136",tier:"Tier 1",i1:22.5,i2:17.0,i3:28.9,i4:31.7},{id:"HCP00000752",city:"MIAMI",state:"FL",zip:"33136",tier:"Tier 1",i1:0.8,i2:1.5,i3:0,i4:0},{id:"HCP00003241",city:"MIAMI",state:"FL",zip:"33176",tier:"Tier 1",i1:3.2,i2:6.2,i3:0,i4:0},{id:"HCP00005185",city:"MIAMI",state:"FL",zip:"33136",tier:"Tier 1",i1:0.8,i2:1.5,i3:0,i4:0},{id:"HCP00005493",city:"MIAMI",state:"FL",zip:"33176",tier:"Tier 1",i1:3.2,i2:6.2,i3:0,i4:0}],"TULSA, OK":[{id:"HCP00000037",city:"LITTLE ROCK",state:"AR",zip:"72205",tier:"Tier 1",i1:15.6,i2:11.8,i3:19.3,i4:19.0},{id:"HCP00000085",city:"PONCA CITY",state:"OK",zip:"74601",tier:"Tier 1",i1:1.0,i2:1.9,i3:0,i4:0},{id:"HCP00001147",city:"LUBBOCK",state:"TX",zip:"79410",tier:"Tier 1",i1:0.4,i2:0.7,i3:0,i4:0},{id:"HCP00001795",city:"LITTLE ROCK",state:"AR",zip:"72205",tier:"Tier 1",i1:21.0,i2:15.5,i3:26.5,i4:28.5},{id:"HCP00002096",city:"LITTLE ROCK",state:"AR",zip:"72205",tier:"Tier 1",i1:1.1,i2:2.2,i3:0,i4:0},{id:"HCP00003257",city:"LITTLE ROCK",state:"AR",zip:"72205",tier:"Tier 1",i1:3.0,i2:3.4,i3:2.4,i4:0}],"DETROIT N, MI":[{id:"HCP00000046",city:"DEARBORN",state:"MI",zip:"48126",tier:"Tier 1",i1:70.2,i2:50.9,i3:89.2,i4:95.0},{id:"HCP00001111",city:"GRAND RAPIDS",state:"MI",zip:"49503",tier:"Tier 1",i1:9.1,i2:8.5,i3:9.6,i4:9.5},{id:"HCP00002663",city:"MACOMB",state:"MI",zip:"48044",tier:"Tier 1",i1:3.8,i2:7.3,i3:0,i4:0},{id:"HCP00002966",city:"DETROIT",state:"MI",zip:"48202",tier:"Tier 1",i1:0.6,i2:1.1,i3:0,i4:0},{id:"HCP00003295",city:"PORT HURON",state:"MI",zip:"48060",tier:"Tier 1",i1:32.9,i2:24.6,i3:41.0,i4:44.3},{id:"HCP00005357",city:"GROSSE POINTE WOODS",state:"MI",zip:"48236",tier:"Tier 1",i1:5.6,i2:6.2,i3:4.8,i4:0}],"PENNSYLVANIA, PA":[{id:"HCP00000092",city:"DUNMORE",state:"PA",zip:"18512",tier:"Tier 1",i1:8.9,i2:6.8,i3:10.8,i4:12.7},{id:"HCP00000603",city:"WASHINGTON",state:"PA",zip:"15301",tier:"Tier 1",i1:2.8,i2:5.3,i3:0,i4:0},{id:"HCP00005250",city:"HERSHEY",state:"PA",zip:"17033",tier:"Tier 1",i1:10.0,i2:7.8,i3:12.1,i4:12.7},{id:"HCP00006711",city:"READING",state:"PA",zip:"19611",tier:"Tier 1",i1:0.6,i2:1.2,i3:0,i4:0},{id:"HCP00007731",city:"WILLIAMSPORT",state:"PA",zip:"17701",tier:"Tier 1",i1:4.0,i2:5.5,i3:2.4,i4:0},{id:"HCP00000282",city:"DANVILLE",state:"PA",zip:"17822",tier:"Tier 2",i1:0,i2:0,i3:0,i4:0}],"NEW JERSEY, NJ":[{id:"HCP00000352",city:"PENNINGTON",state:"NJ",zip:"08534",tier:"Tier 1",i1:22.6,i2:16.2,i3:28.9,i4:31.7},{id:"HCP00000544",city:"BASKING RIDGE",state:"NJ",zip:"07920",tier:"Tier 1",i1:17.2,i2:13.8,i3:20.5,i4:22.2},{id:"HCP00000787",city:"BASKING RIDGE",state:"NJ",zip:"07920",tier:"Tier 1",i1:14.5,i2:12.0,i3:16.9,i4:19.0},{id:"HCP00001379",city:"MIDDLETOWN",state:"NJ",zip:"07748",tier:"Tier 1",i1:1.8,i2:3.5,i3:0,i4:0},{id:"HCP00003965",city:"MIDDLETOWN",state:"NJ",zip:"07748",tier:"Tier 1",i1:1.8,i2:3.5,i3:0,i4:0},{id:"HCP00004157",city:"HACKENSACK",state:"NJ",zip:"07601",tier:"Tier 1",i1:4.5,i2:6.3,i3:2.4,i4:0}],"COLUMBUS, OH":[{id:"HCP00000383",city:"AKRON",state:"OH",zip:"44304",tier:"Tier 1",i1:0.1,i2:0.2,i3:0,i4:0},{id:"HCP00000754",city:"MORGANTOWN",state:"WV",zip:"26506",tier:"Tier 1",i1:3.6,i2:2.8,i3:4.8,i4:0},{id:"HCP00000989",city:"CANTON",state:"OH",zip:"44710",tier:"Tier 1",i1:13.1,i2:10.0,i3:16.9,i4:19.0},{id:"HCP00001045",city:"COLUMBUS",state:"OH",zip:"43215",tier:"Tier 1",i1:35.3,i2:26.9,i3:45.8,i4:47.5},{id:"HCP00001285",city:"COLUMBUS",state:"OH",zip:"43219",tier:"Tier 1",i1:32.4,i2:23.8,i3:41.0,i4:44.3},{id:"HCP00006677",city:"MORGANTOWN",state:"WV",zip:"26506",tier:"Tier 1",i1:0.0,i2:0.0,i3:0,i4:0}],"BOSTON, MA":[{id:"HCP00000396",city:"HARTFORD",state:"CT",zip:"06106",tier:"Tier 1",i1:1.8,i2:3.4,i3:0,i4:0},{id:"HCP00000945",city:"AUGUSTA",state:"ME",zip:"04330",tier:"Tier 1",i1:5.1,i2:5.3,i3:4.8,i4:0},{id:"HCP00006832",city:"WESTBROOK",state:"ME",zip:"04092",tier:"Tier 1",i1:17.4,i2:13.1,i3:21.7,i4:22.2},{id:"HCP00007533",city:"SPRINGFIELD",state:"MA",zip:"01199",tier:"Tier 1",i1:7.2,i2:5.7,i3:9.6,i4:9.5},{id:"HCP00007593",city:"BOSTON",state:"MA",zip:"02114",tier:"Tier 1",i1:0.7,i2:1.4,i3:0,i4:0}],"CINCINNATI, OH":[{id:"HCP00000400",city:"CINCINNATI",state:"OH",zip:"45247",tier:"Tier 1",i1:1.5,i2:2.8,i3:0,i4:0},{id:"HCP00000558",city:"SYLVANIA",state:"OH",zip:"43560",tier:"Tier 1",i1:2.2,i2:4.3,i3:0,i4:0},{id:"HCP00001533",city:"CINCINNATI",state:"OH",zip:"45236",tier:"Tier 1",i1:15.9,i2:12.4,i3:19.3,i4:19.0},{id:"HCP00001599",city:"FAIRFIELD",state:"OH",zip:"45014",tier:"Tier 1",i1:19.0,i2:16.1,i3:21.7,i4:22.2},{id:"HCP00002153",city:"ANN ARBOR",state:"MI",zip:"48109",tier:"Tier 1",i1:7.2,i2:5.7,i3:9.6,i4:9.5},{id:"HCP00002188",city:"WAUSEON",state:"OH",zip:"43567",tier:"Tier 1",i1:6.2,i2:5.1,i3:7.2,i4:6.3}],"SACRAMENTO, CA":[{id:"HCP00000492",city:"RENO",state:"NV",zip:"89502",tier:"Tier 1",i1:20.5,i2:16.8,i3:24.1,i4:25.3},{id:"HCP00000758",city:"CARMICHAEL",state:"CA",zip:"95608",tier:"Tier 1",i1:3.6,i2:6.9,i3:0,i4:0},{id:"HCP00001853",city:"RENO",state:"NV",zip:"89511",tier:"Tier 1",i1:5.6,i2:6.2,i3:4.8,i4:0},{id:"HCP00003524",city:"RENO",state:"NV",zip:"89511",tier:"Tier 1",i1:77.0,i2:58.6,i3:100.0,i4:104.5}],"NEW ORLEANS, LA":[{id:"HCP00000501",city:"ALEXANDRIA",state:"LA",zip:"71301",tier:"Tier 1",i1:17.3,i2:12.8,i3:21.7,i4:22.2},{id:"HCP00001548",city:"JACKSON",state:"MS",zip:"39202",tier:"Tier 1",i1:13.0,i2:10.0,i3:16.9,i4:19.0},{id:"HCP00002169",city:"JACKSON",state:"MS",zip:"39202",tier:"Tier 1",i1:20.2,i2:15.6,i3:26.5,i4:28.5},{id:"HCP00002773",city:"ALEXANDRIA",state:"LA",zip:"71301",tier:"Tier 1",i1:10.9,i2:8.5,i3:13.3,i4:12.7}],"BIRMINGHAM, AL":[{id:"HCP00000553",city:"TUSCALOOSA",state:"AL",zip:"35406",tier:"Tier 1",i1:10.1,i2:8.0,i3:12.1,i4:12.7},{id:"HCP00002249",city:"BAY MINETTE",state:"AL",zip:"36507",tier:"Tier 1",i1:11.9,i2:9.3,i3:14.5,i4:15.8},{id:"HCP00003232",city:"BIRMINGHAM",state:"AL",zip:"35233",tier:"Tier 1",i1:11.9,i2:9.2,i3:15.7,i4:15.8},{id:"HCP00003547",city:"BIRMINGHAM",state:"AL",zip:"35243",tier:"Tier 1",i1:32.0,i2:22.9,i3:41.0,i4:44.3}],"INLAND EMPIRE, CA":[{id:"HCP00000599",city:"BAKERSFIELD",state:"CA",zip:"93312",tier:"Tier 1",i1:135.5,i2:103.2,i3:176.0,i4:183.7},{id:"HCP00001119",city:"SAN GABRIEL",state:"CA",zip:"91776",tier:"Tier 1",i1:14.8,i2:12.6,i3:16.9,i4:19.0},{id:"HCP00001355",city:"RIVERSIDE",state:"CA",zip:"92501",tier:"Tier 1",i1:6.6,i2:5.9,i3:7.2,i4:6.3}],"WASHINGTON, DC":[{id:"HCP00000624",city:"ANNAPOLIS",state:"MD",zip:"21401",tier:"Tier 1",i1:36.7,i2:27.5,i3:45.8,i4:47.5},{id:"HCP00003322",city:"ROSEDALE",state:"MD",zip:"21237",tier:"Tier 1",i1:37.1,i2:27.1,i3:47.0,i4:50.7},{id:"HCP00005620",city:"FAIRFAX",state:"VA",zip:"22031",tier:"Tier 1",i1:7.5,i2:7.7,i3:7.2,i4:6.3},{id:"HCP00005742",city:"WASHINGTON",state:"DC",zip:"20007",tier:"Tier 1",i1:3.1,i2:3.6,i3:2.4,i4:0}],"CHARLESTON, SC":[{id:"HCP00000634",city:"BOILING SPRINGS",state:"SC",zip:"29316",tier:"Tier 1",i1:2.1,i2:4.1,i3:0,i4:0},{id:"HCP00002067",city:"ANDERSON",state:"SC",zip:"29621",tier:"Tier 1",i1:4.4,i2:6.2,i3:2.4,i4:0},{id:"HCP00003647",city:"SENECA",state:"SC",zip:"29672",tier:"Tier 1",i1:0.8,i2:1.5,i3:0,i4:0}],"DENVER, CO":[{id:"HCP00000661",city:"AURORA",state:"CO",zip:"80045",tier:"Tier 1",i1:1.9,i2:1.5,i3:2.4,i4:0},{id:"HCP00002693",city:"DENVER",state:"CO",zip:"80218",tier:"Tier 1",i1:7.3,i2:6.2,i3:8.4,i4:9.5},{id:"HCP00003496",city:"AURORA",state:"CO",zip:"80045",tier:"Tier 1",i1:14.5,i2:11.3,i3:19.3,i4:19.0}]};
+
+const ZIP_SAMPLE={"BROOKLYN, NY":[{zip:"00501",city:"Holtsville"},{zip:"07002",city:"Bayonne"},{zip:"07030",city:"Hoboken"},{zip:"07302",city:"Jersey City"},{zip:"07303",city:"Jersey City"},{zip:"07304",city:"Jersey City"},{zip:"07305",city:"Jersey City"},{zip:"07306",city:"Jersey City"}],"BOSTON, MA":[{zip:"01001",city:"Agawam"},{zip:"01002",city:"Amherst"},{zip:"01003",city:"Amherst"},{zip:"01005",city:"Barre"},{zip:"01007",city:"Belchertown"},{zip:"01008",city:"Blandford"},{zip:"01009",city:"Bondsville"},{zip:"01010",city:"Brimfield"}],"ALBANY, NY":[{zip:"10501",city:"Amawalk"},{zip:"10505",city:"Baldwin Place"},{zip:"10509",city:"Brewster"},{zip:"10511",city:"Buchanan"},{zip:"10512",city:"Carmel"},{zip:"10516",city:"Cold Spring"},{zip:"12206",city:"Albany"},{zip:"12207",city:"Albany"}],"PENNSYLVANIA, PA":[{zip:"15001",city:"Aliquippa"},{zip:"15003",city:"Ambridge"},{zip:"15005",city:"Baden"},{zip:"15009",city:"Beaver"},{zip:"17033",city:"Hershey"},{zip:"17701",city:"Williamsport"},{zip:"18512",city:"Dunmore"},{zip:"19611",city:"Reading"}],"WASHINGTON, DC":[{zip:"20007",city:"Washington"},{zip:"20016",city:"Washington"},{zip:"20037",city:"Washington"},{zip:"21401",city:"Annapolis"},{zip:"21237",city:"Rosedale"},{zip:"22031",city:"Fairfax"},{zip:"22031",city:"Fairfax"},{zip:"22201",city:"Arlington"}],"COLUMBUS, OH":[{zip:"43215",city:"Columbus"},{zip:"43219",city:"Columbus"},{zip:"44304",city:"Akron"},{zip:"44710",city:"Canton"},{zip:"26506",city:"Morgantown"},{zip:"44903",city:"Mansfield"},{zip:"44004",city:"Ashtabula"},{zip:"43701",city:"Zanesville"}],"FT LAUDERDALE, FL":[{zip:"33136",city:"Miami"},{zip:"33176",city:"Miami"},{zip:"33331",city:"Weston"},{zip:"33401",city:"West Palm Beach"},{zip:"33063",city:"Margate"},{zip:"33021",city:"Hollywood"},{zip:"33019",city:"Hollywood"},{zip:"33004",city:"Dania Beach"}],"SACRAMENTO, CA":[{zip:"89502",city:"Reno"},{zip:"89511",city:"Reno"},{zip:"95608",city:"Carmichael"},{zip:"95901",city:"Marysville"},{zip:"95204",city:"Stockton"},{zip:"95814",city:"Sacramento"},{zip:"95816",city:"Sacramento"},{zip:"95818",city:"Sacramento"}],"DETROIT N, MI":[{zip:"48126",city:"Dearborn"},{zip:"48073",city:"Royal Oak"},{zip:"48060",city:"Port Huron"},{zip:"48314",city:"Sterling Heights"},{zip:"48236",city:"Grosse Pointe Woods"},{zip:"48202",city:"Detroit"},{zip:"49503",city:"Grand Rapids"},{zip:"49546",city:"Grand Rapids"}],"TULSA, OK":[{zip:"72205",city:"Little Rock"},{zip:"74601",city:"Ponca City"},{zip:"74146",city:"Tulsa"},{zip:"79106",city:"Amarillo"},{zip:"72901",city:"Fort Smith"},{zip:"74003",city:"Bartlesville"},{zip:"74012",city:"Broken Arrow"},{zip:"74055",city:"Owasso"}],"BIRMINGHAM, AL":[{zip:"35406",city:"Tuscaloosa"},{zip:"36507",city:"Bay Minette"},{zip:"35233",city:"Birmingham"},{zip:"35243",city:"Birmingham"},{zip:"35294",city:"Birmingham"},{zip:"35630",city:"Florence"},{zip:"35801",city:"Huntsville"},{zip:"36301",city:"Dothan"}],"NEW ORLEANS, LA":[{zip:"71301",city:"Alexandria"},{zip:"39202",city:"Jackson"},{zip:"70808",city:"Baton Rouge"},{zip:"70121",city:"New Orleans"},{zip:"39401",city:"Hattiesburg"},{zip:"71103",city:"Shreveport"},{zip:"70118",city:"New Orleans"},{zip:"70503",city:"Lafayette"}],"DENVER, CO":[{zip:"80045",city:"Aurora"},{zip:"80218",city:"Denver"},{zip:"80228",city:"Lakewood"},{zip:"80113",city:"Englewood"},{zip:"80260",city:"Thornton"},{zip:"84604",city:"Provo"},{zip:"84112",city:"Salt Lake City"},{zip:"81505",city:"Grand Junction"}],"INLAND EMPIRE, CA":[{zip:"93312",city:"Bakersfield"},{zip:"91776",city:"San Gabriel"},{zip:"92501",city:"Riverside"},{zip:"96813",city:"Honolulu"},{zip:"92395",city:"Victorville"},{zip:"92307",city:"Apple Valley"},{zip:"92555",city:"Moreno Valley"},{zip:"93436",city:"Lompoc"}],"CINCINNATI, OH":[{zip:"45247",city:"Cincinnati"},{zip:"43560",city:"Sylvania"},{zip:"45236",city:"Cincinnati"},{zip:"45014",city:"Fairfield"},{zip:"48109",city:"Ann Arbor"},{zip:"43567",city:"Wauseon"},{zip:"45805",city:"Lima"},{zip:"43537",city:"Maumee"}]};
+
+const terrMap={};
+TERRITORIES.forEach(t=>{terrMap[t.name]=t;});
+
+let currentRole='nsd';
+let terrPage=0,hcpPage=0,zipPage=0;
+const PAGE_SIZE=12;
+
+const ROLES={
+  nsd:{name:'National Sales Director',id:'E056',initials:'NS',avClass:'av-nsd',label:'NSD',roleLabel:'NSD — NATION',dot:'nsd',scope:'Full US'},
+  dm:{name:'District Manager 1',id:'E051',initials:'DM',avClass:'av-dm',label:'DM',roleLabel:'DM — NORTHEAST',dot:'dm',scope:'NORTHEAST district'},
+  oam:{name:'Rep 1',id:'E001',initials:'R1',avClass:'av-oam',label:'OAM',roleLabel:'OAM — ALBANY, NY',dot:'oam',scope:'ALBANY, NY'}
+};
+
+function cycleRole(){
+  const order=['nsd','dm','oam'];
+  const idx=order.indexOf(currentRole);
+  currentRole=order[(idx+1)%3];
+  applyRole();
+}
+
+function applyRole(){
+  const r=ROLES[currentRole];
+  document.getElementById('role-dot').className='role-dot '+r.dot;
+  document.getElementById('role-label').textContent=r.label;
+  document.getElementById('sb-av').textContent=r.initials;
+  document.getElementById('sb-av').className='sb-avatar '+r.avClass;
+  document.getElementById('sb-name').textContent=r.name+' ('+r.id+')';
+  document.getElementById('sb-subrole').textContent=r.roleLabel;
+  document.getElementById('admin-nav').style.display=currentRole==='nsd'?'':'none';
+  document.getElementById('new-mapping-btn').style.display=currentRole==='nsd'?'':'none';
+  terrPage=0; hcpPage=0; zipPage=0;
+  renderAll();
+}
+
+function getVisibleTerritories(){
+  if(currentRole==='dm') return TERRITORIES.filter(t=>t.district==='NORTHEAST');
+  if(currentRole==='oam') return TERRITORIES.filter(t=>t.name==='ALBANY, NY');
+  return TERRITORIES;
+}
+
+function isVacant(t){return t.rep_name.startsWith('Vacant');}
+
+// === TERRITORIES TABLE ===
+function renderTerrTable(){
+  const q=(document.getElementById('terr-search').value||'').toLowerCase();
+  const dist=document.getElementById('terr-district-f').value;
+  const idxKey=document.getElementById('terr-idx-f').value||'idx3';
+  const vacantF=document.getElementById('terr-vacant-f').value;
+  let terrs=getVisibleTerritories().filter(t=>{
+    if(dist&&t.district!==dist) return false;
+    if(vacantF==='vacant'&&!isVacant(t)) return false;
+    if(vacantF==='active'&&isVacant(t)) return false;
+    if(q&&!t.name.toLowerCase().includes(q)&&!t.rep_name.toLowerCase().includes(q)&&!t.district.toLowerCase().includes(q)) return false;
+    return true;
+  });
+  document.getElementById('terr-filter-count').textContent=terrs.length+' of '+TERRITORIES.length+' territories';
+  const maxVal=Math.max(...terrs.map(t=>t[idxKey]||0));
+  const start=terrPage*PAGE_SIZE, end=start+PAGE_SIZE;
+  const page=terrs.slice(start,end);
+
+  // conflict check
+  const vacants=TERRITORIES.filter(t=>isVacant(t));
+  if(vacants.length){
+    document.getElementById('terr-conflict-banner').style.display='flex';
+    document.getElementById('terr-conflict-text').textContent=vacants.length+' vacant territories with no OAM assigned: '+vacants.map(t=>t.name).join(', ');
+  }
+
+  // metrics
+  const vis=getVisibleTerritories();
+  const avgIdx3=Math.round(vis.reduce((s,t)=>s+t.idx3,0)/vis.length*10)/10;
+  const totalHCPs=vis.reduce((s,t)=>s+t.hco_count,0).toLocaleString();
+  const totalZIPs=vis.reduce((s,t)=>s+t.zip_count,0).toLocaleString();
+  document.getElementById('terr-metrics').innerHTML=`
+    <div class="metric-card"><div class="metric-label">Territories</div><div class="metric-val">${vis.length}</div><div class="metric-sub">${currentRole==='nsd'?'5 districts':currentRole==='dm'?'NORTHEAST':'My territory'}</div></div>
+    <div class="metric-card"><div class="metric-label">Total HCPs</div><div class="metric-val">${totalHCPs}</div><div class="metric-sub up">Across ${vis.length} territories</div></div>
+    <div class="metric-card"><div class="metric-label">Total ZIPs</div><div class="metric-val">${totalZIPs}</div><div class="metric-sub">Mapped in ZTT</div></div>
+    <div class="metric-card"><div class="metric-label">Avg Index 3</div><div class="metric-val">${avgIdx3}</div><div class="metric-sub${avgIdx3>1000?' up':' warn'}">Patient Start Forms</div></div>`;
+
+  document.getElementById('terr-tbody').innerHTML=page.map(t=>{
+    const val=t[idxKey]||0;
+    const pct=maxVal>0?Math.round(val/maxVal*100):0;
+    const vacant=isVacant(t);
+    return`<tr>
+      <td><span class="t-dot" style="background:${t.color}${vacant?';outline:2px solid #ff9500;outline-offset:1px':''}"></span></td>
+      <td style="font-weight:500">${t.name}${vacant?` <span class="badge badge-orange" style="font-size:9px">Vacant</span>`:''}</td>
+      <td><span class="badge badge-gray">${t.district}</span></td>
+      <td>${currentRole==='nsd'?`<div class="edit-cell" id="rep-cell-${t.rep_id}">
+        <span style="font-size:11px;color:${vacant?'#ff9500':''}">${t.rep_name} (${t.rep_id})</span>
+        <button class="action-btn" onclick="editOAM('${t.name.replace(/'/g,"\\'")}')">Edit</button>
+      </div>`:`${t.rep_name}`}</td>
+      <td>${t.hco_count}</td>
+      <td>${t.zip_count.toLocaleString()}</td>
+      <td><div class="idx-bar-wrap"><div class="idx-bar-bg"><div class="idx-bar-fill" style="width:${pct}%;background:${t.color}"></div></div><span style="font-size:11px;color:var(--text3);min-width:44px;text-align:right">${val}</span></div></td>
+      <td><button class="action-btn" onclick="showTerrDetail('${t.name.replace(/'/g,"\\'")}')">View</button>${currentRole!=='oam'?` <button class="action-btn" onclick="openRequestModal('${t.name.replace(/'/g,"\\'")}')">Request</button>`:''}</td>
+    </tr>`;
+  }).join('');
+
+  renderPagination('terr',terrs.length,terrPage,(p)=>{terrPage=p;renderTerrTable();});
+}
+
+// === HCPs TABLE ===
+function buildHCPRows(){
+  const vis=new Set(getVisibleTerritories().map(t=>t.name));
+  const rows=[];
+  for(const[terr,hcps] of Object.entries(HCP_SAMPLE)){
+    if(!vis.has(terr)) continue;
+    const t=terrMap[terr];
+    hcps.forEach(h=>rows.push({...h,territory:terr,color:t?t.color:'#888',district:t?t.district:''}));
+  }
+  return rows;
+}
+
+function renderHCPTable(){
+  // populate territory filter
+  const terrSel=document.getElementById('hcp-terr-f');
+  if(terrSel.options.length===1){
+    getVisibleTerritories().forEach(t=>{
+      const o=document.createElement('option');
+      o.value=t.name; o.textContent=t.name;
+      terrSel.appendChild(o);
+    });
+  }
+  const q=(document.getElementById('hcp-search').value||'').toLowerCase();
+  const terrF=document.getElementById('hcp-terr-f').value;
+  const distF=document.getElementById('hcp-district-f').value;
+  const tierF=document.getElementById('hcp-tier-f').value;
+  let rows=buildHCPRows().filter(h=>{
+    if(terrF&&h.territory!==terrF) return false;
+    if(distF&&h.district!==distF) return false;
+    if(tierF&&h.tier!==tierF) return false;
+    if(q&&!h.id.toLowerCase().includes(q)&&!h.city.toLowerCase().includes(q)&&!h.zip.includes(q)) return false;
+    return true;
+  });
+  document.getElementById('hcp-filter-count').textContent=rows.length+' HCPs shown (sample of 7,125)';
+
+  // metrics
+  const vis=buildHCPRows();
+  const t1=vis.filter(h=>h.tier==='Tier 1').length;
+  const avgI3=vis.length>0?(vis.reduce((s,h)=>s+h.i3,0)/vis.length).toFixed(1):0;
+  document.getElementById('hcp-metrics').innerHTML=`
+    <div class="metric-card"><div class="metric-label">HCPs in sample</div><div class="metric-val">${vis.length}</div><div class="metric-sub">of 7,125 total</div></div>
+    <div class="metric-card"><div class="metric-label">Tier 1 HCPs</div><div class="metric-val">${t1}</div><div class="metric-sub up">${Math.round(t1/vis.length*100)}% of sample</div></div>
+    <div class="metric-card"><div class="metric-label">Avg Index 3</div><div class="metric-val">${avgI3}</div><div class="metric-sub">Patient Start Forms</div></div>
+    <div class="metric-card"><div class="metric-label">Territories</div><div class="metric-val">${Object.keys(HCP_SAMPLE).length}</div><div class="metric-sub">With HCP data</div></div>`;
+
+  const start=hcpPage*PAGE_SIZE,end=start+PAGE_SIZE;
+  document.getElementById('hcp-tbody').innerHTML=rows.slice(start,end).map(h=>`<tr>
+    <td style="font-family:monospace;font-size:10px;color:var(--text3)">${h.id}</td>
+    <td>${h.city}, ${h.state}</td>
+    <td style="font-family:monospace;font-size:10px">${h.zip}</td>
+    <td><span class="t-dot" style="background:${h.color}"></span></td>
+    <td>${currentRole==='nsd'?`<select class="inline-select" onchange="reassignHCP('${h.id}',this.value)">${getVisibleTerritories().map(t=>`<option${t.name===h.territory?' selected':''}>${t.name}</option>`).join('')}</select>`:h.territory}</td>
+    <td><span class="badge ${h.tier.replace(' ','-').toLowerCase()}">${h.tier}</span></td>
+    <td style="font-weight:500">${h.i3}</td>
+    <td>
+      <button class="action-btn" onclick="showHCPDetail(${JSON.stringify(h).replace(/"/g,'&quot;')})">View</button>
+      ${currentRole!=='oam'?`<button class="action-btn" onclick="openRequestModal('${h.territory.replace(/'/g,"\\'")}')" style="margin-left:3px">Request</button>`:''}
+    </td>
+  </tr>`).join('');
+  renderPagination('hcp',rows.length,hcpPage,(p)=>{hcpPage=p;renderHCPTable();});
+}
+
+// === ZIPs TABLE ===
+function buildZIPRows(){
+  const vis=new Set(getVisibleTerritories().map(t=>t.name));
+  const rows=[];
+  for(const[terr,zips] of Object.entries(ZIP_SAMPLE)){
+    if(!vis.has(terr)) continue;
+    const t=terrMap[terr];
+    zips.forEach(z=>rows.push({...z,territory:terr,district:t?t.district:'',rep:t?t.rep_name:'',color:t?t.color:'#888',conflict:z.zip==='89511'}));
+  }
+  return rows;
+}
+
+function renderZIPTable(){
+  const zipTerrSel=document.getElementById('zip-terr-f');
+  if(zipTerrSel.options.length===1){
+    getVisibleTerritories().forEach(t=>{
+      const o=document.createElement('option');o.value=t.name;o.textContent=t.name;zipTerrSel.appendChild(o);
+    });
+  }
+  document.getElementById('zip-conflict-banner').style.display='flex';
+  const q=(document.getElementById('zip-search').value||'').toLowerCase();
+  const terrF=document.getElementById('zip-terr-f').value;
+  const distF=document.getElementById('zip-district-f').value;
+  let rows=buildZIPRows().filter(z=>{
+    if(terrF&&z.territory!==terrF) return false;
+    if(distF&&z.district!==distF) return false;
+    if(q&&!z.zip.includes(q)&&!z.city.toLowerCase().includes(q)) return false;
+    return true;
+  });
+  document.getElementById('zip-filter-count').textContent=rows.length+' ZIPs shown (sample of 41,521)';
+
+  const totalZIPs=getVisibleTerritories().reduce((s,t)=>s+t.zip_count,0);
+  document.getElementById('zip-metrics').innerHTML=`
+    <div class="metric-card"><div class="metric-label">ZIPs in alignment</div><div class="metric-val">41,521</div><div class="metric-sub">Full ZTT dataset</div></div>
+    <div class="metric-card"><div class="metric-label">Visible territory ZIPs</div><div class="metric-val">${totalZIPs.toLocaleString()}</div><div class="metric-sub">Current view scope</div></div>
+    <div class="metric-card"><div class="metric-label">Conflicts detected</div><div class="metric-val warn" style="color:var(--orange-text)">1</div><div class="metric-sub warn">ZIP 89511 dual-mapped</div></div>
+    <div class="metric-card"><div class="metric-label">Sample loaded</div><div class="metric-val">${buildZIPRows().length}</div><div class="metric-sub">Representative ZIPs</div></div>`;
+
+  const start=zipPage*PAGE_SIZE,end=start+PAGE_SIZE;
+  document.getElementById('zip-tbody').innerHTML=rows.slice(start,end).map(z=>`<tr${z.conflict?' style="background:#fff9f0"':''}>
+    <td style="font-family:monospace;font-weight:500">${z.zip}${z.conflict?` <span class="conflict-dot"></span>`:''}
+    </td>
+    <td>${z.city}</td>
+    <td><span class="t-dot" style="background:${z.color}"></span></td>
+    <td>${currentRole==='nsd'?`<select class="inline-select" onchange="reassignZIP('${z.zip}',this.value)">${getVisibleTerritories().map(t=>`<option${t.name===z.territory?' selected':''}>${t.name}</option>`).join('')}</select>`:z.territory}</td>
+    <td><span class="badge badge-gray" style="font-size:9px">${z.district}</span></td>
+    <td style="font-size:11px;color:var(--text3)">${z.rep}</td>
+    <td>
+      ${currentRole==='nsd'?`<button class="action-btn danger" onclick="showToast('ZIP ${z.zip} unassigned — create request to re-assign','warn')">Unassign</button>`:''}
+      <button class="action-btn" onclick="openRequestModal('${z.territory.replace(/'/g,"\\'")}')">Request</button>
+    </td>
+  </tr>`).join('');
+  renderPagination('zip',rows.length,zipPage,(p)=>{zipPage=p;renderZIPTable();});
+}
+
+// === ROSTER TABLE ===
+function renderRosterTable(){
+  const q=(document.getElementById('roster-search').value||'').toLowerCase();
+  const titleF=document.getElementById('roster-title-f').value;
+  const distF=document.getElementById('roster-district-f').value;
+
+  const terrByDistrict={NORTHEAST:'E051',SOUTHEAST:'E052','NORTH CENTRAL':'E053','SOUTH CENTRAL':'E054',WEST:'E054'};
+
+  let rows=ROSTER.filter(r=>{
+    if(titleF&&r.title!==titleF) return false;
+    if(q&&!r.name.toLowerCase().includes(q)&&!r.id.toLowerCase().includes(q)) return false;
+    if(distF){
+      if(r.title==='DM'&&r.territory!==distF) return false;
+      if(r.title==='OAM'){
+        const t=terrMap[r.territory];
+        if(t&&t.district!==distF) return false;
+        if(!t) return false;
+      }
+    }
+    return true;
+  });
+  document.getElementById('roster-filter-count').textContent=rows.length+' of '+ROSTER.length+' people';
+
+  const nsds=ROSTER.filter(r=>r.title==='NSD').length;
+  const dms=ROSTER.filter(r=>r.title==='DM').length;
+  const oams=ROSTER.filter(r=>r.title==='OAM').length;
+  const vacants=ROSTER.filter(r=>r.name.startsWith('Vacant')).length;
+  document.getElementById('roster-metrics').innerHTML=`
+    <div class="metric-card"><div class="metric-label">NSDs</div><div class="metric-val">${nsds}</div><div class="metric-sub">National level</div></div>
+    <div class="metric-card"><div class="metric-label">District Managers</div><div class="metric-val">${dms}</div><div class="metric-sub">5 districts</div></div>
+    <div class="metric-card"><div class="metric-label">OAMs (Reps)</div><div class="metric-val">${oams}</div><div class="metric-sub">Field representatives</div></div>
+    <div class="metric-card"><div class="metric-label">Vacant positions</div><div class="metric-val" style="color:var(--orange-text)">${vacants}</div><div class="metric-sub warn">Territories unmanned</div></div>`;
+
+  const TITLE_COLORS={NSD:'badge-red',DM:'badge-orange',OAM:'badge-blue'};
+  const districtForOAM=(r)=>{const t=terrMap[r.territory];return t?t.district:r.territory;};
+
+  document.getElementById('roster-tbody').innerHTML=rows.map(r=>{
+    const isVac=r.name.startsWith('Vacant');
+    const dist=r.title==='OAM'?districtForOAM(r):r.title==='DM'?r.territory:'NATION';
+    return`<tr${isVac?' style="background:#fff9f0"':''}>
+      <td style="font-family:monospace;font-size:11px;color:var(--text3)">${r.id}</td>
+      <td style="font-weight:${isVac?'400':'500'};color:${isVac?'var(--orange-text)':'var(--text)'}">${r.name}</td>
+      <td><span class="badge ${TITLE_COLORS[r.title]}">${r.title}</span></td>
+      <td style="font-size:11px">${r.title==='NSD'?'NATION':r.territory}${isVac?` <span class="badge badge-orange" style="font-size:9px">Vacant</span>`:''}</td>
+      <td style="font-size:11px;color:var(--text3)">${dist}</td>
+      <td>${isVac?`<span class="badge badge-orange">Unassigned</span>`:`<span class="badge badge-green">Active</span>`}</td>
+      <td>${currentRole==='nsd'?`<button class="action-btn" onclick="showRosterDetail(${JSON.stringify(r).replace(/"/g,'&quot;')})">View</button>`:''}</td>
+    </tr>`;
+  }).join('');
+}
+
+// === PAGINATION ===
+function renderPagination(id,total,page,cb){
+  const pages=Math.ceil(total/PAGE_SIZE);
+  const el=document.getElementById(id+'-pagination');
+  if(!el) return;
+  if(pages<=1){el.innerHTML='';return;}
+  const start=page*PAGE_SIZE+1,end=Math.min((page+1)*PAGE_SIZE,total);
+  el.innerHTML=`<span>${start}–${end} of ${total}</span><div class="pag-btns">
+    <button class="pag-btn" onclick="(${cb})(${page-1})" ${page===0?'disabled':''}>Prev</button>
+    ${Array.from({length:Math.min(pages,5)},(_,i)=>`<button class="pag-btn${i===page?' active':''}" onclick="(${cb})(${i})">${i+1}</button>`).join('')}
+    <button class="pag-btn" onclick="(${cb})(${page+1})" ${page===pages-1?'disabled':''}>Next</button>
+  </div>`;
+}
+
+// === DETAIL PANELS ===
+function showTerrDetail(name){
+  const t=terrMap[name];
+  if(!t) return;
+  const mx=[0,Math.max(...TERRITORIES.map(x=>x.idx1)),Math.max(...TERRITORIES.map(x=>x.idx2)),Math.max(...TERRITORIES.map(x=>x.idx3)),Math.max(...TERRITORIES.map(x=>x.idx4))];
+  document.getElementById('detail-header').innerHTML=`
+    <span class="t-dot" style="background:${t.color};width:12px;height:12px"></span>
+    <div><div style="font-size:14px;font-weight:600">${t.name}</div><div style="font-size:11px;color:var(--text3)">${t.district} district</div></div>
+    <button class="detail-close" onclick="closeDetail()">×</button>`;
+  const hcps=HCP_SAMPLE[t.name]||[];
+  document.getElementById('detail-body').innerHTML=`
+    <div class="detail-section">
+      <div class="detail-section-title">Territory info</div>
+      ${isVacant(t)?`<div style="margin-bottom:10px"><span class="badge badge-orange">Vacant — no OAM assigned</span></div>`:''}
+      <div class="detail-row"><span class="detail-key">OAM</span><span class="detail-val">${t.rep_name} (${t.rep_id})</span></div>
+      <div class="detail-row"><span class="detail-key">District</span><span class="detail-val">${t.district}</span></div>
+      <div class="detail-row"><span class="detail-key">HCPs</span><span class="detail-val">${t.hco_count}</span></div>
+      <div class="detail-row"><span class="detail-key">ZIPs</span><span class="detail-val">${t.zip_count.toLocaleString()}</span></div>
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-title">All 4 alignment indices</div>
+      ${[1,2,3,4].map(i=>{const v=t['idx'+i],pct=Math.round(v/mx[i]*100);return`
+        <div class="idx-detail-row">
+          <span class="idx-name">Index ${i}</span>
+          <div class="idx-bar-bg"><div class="idx-bar-fill" style="width:${pct}%;background:${t.color}"></div></div>
+          <span class="idx-val">${v}</span>
+        </div>`;}).join('')}
+      <div style="font-size:9px;color:var(--text4);margin-top:6px;line-height:1.6">
+        Idx 1: 25% ZIP Pop + 75% Start Forms<br>
+        Idx 2: 50% Prevalence + 50% Start Forms<br>
+        Idx 3: 100% Patient Start Forms<br>
+        Idx 4: 100% Completed Start Forms
+      </div>
+    </div>
+    ${hcps.length?`<div class="detail-section">
+      <div class="detail-section-title">Top HCPs (sample)</div>
+      ${hcps.slice(0,5).map(h=>`<div class="detail-row"><span class="detail-key" style="font-family:monospace;font-size:10px">${h.id}</span><span class="detail-val" style="font-size:10px">${h.city}, ${h.state} · ${h.tier} · i3:${h.i3}</span></div>`).join('')}
+    </div>`:''}
+    <div class="detail-action-row">
+      <button class="detail-action-btn" onclick="openRequestModal('${name.replace(/'/g,"\\'")}');closeDetail()">Submit request</button>
+      ${currentRole==='nsd'?`<button class="detail-action-btn primary" onclick="editOAM('${name.replace(/'/g,"\\'")}');closeDetail()">Reassign OAM</button>`:''}
+    </div>`;
+  document.getElementById('detail-overlay').classList.add('open');
+}
+
+function showHCPDetail(h){
+  const t=terrMap[h.territory];
+  document.getElementById('detail-header').innerHTML=`
+    <div><div style="font-size:13px;font-weight:600">${h.id}</div><div style="font-size:11px;color:var(--text3)">${h.city}, ${h.state} · ZIP ${h.zip}</div></div>
+    <button class="detail-close" onclick="closeDetail()">×</button>`;
+  document.getElementById('detail-body').innerHTML=`
+    <div class="detail-section">
+      <div class="detail-section-title">HCP info</div>
+      <div class="detail-row"><span class="detail-key">Territory</span><span class="detail-val">${h.territory}</span></div>
+      <div class="detail-row"><span class="detail-key">District</span><span class="detail-val">${t?t.district:'—'}</span></div>
+      <div class="detail-row"><span class="detail-key">OAM</span><span class="detail-val">${t?t.rep_name:'—'}</span></div>
+      <div class="detail-row"><span class="detail-key">Tier</span><span class="detail-val"><span class="badge ${h.tier.replace(' ','-').toLowerCase()}">${h.tier}</span></span></div>
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-title">Index scores</div>
+      <div class="idx-detail-row"><span class="idx-name">Index 1</span><div class="idx-bar-bg"><div class="idx-bar-fill" style="width:${Math.min(h.i1/2,100)}%;background:#378ADD"></div></div><span class="idx-val">${h.i1}</span></div>
+      <div class="idx-detail-row"><span class="idx-name">Index 2</span><div class="idx-bar-bg"><div class="idx-bar-fill" style="width:${Math.min(h.i2/2,100)}%;background:#1D9E75"></div></div><span class="idx-val">${h.i2}</span></div>
+      <div class="idx-detail-row"><span class="idx-name">Index 3</span><div class="idx-bar-bg"><div class="idx-bar-fill" style="width:${Math.min(h.i3/2,100)}%;background:#7F77DD"></div></div><span class="idx-val">${h.i3}</span></div>
+      <div class="idx-detail-row"><span class="idx-name">Index 4</span><div class="idx-bar-bg"><div class="idx-bar-fill" style="width:${Math.min(h.i4/2,100)}%;background:#D85A30"></div></div><span class="idx-val">${h.i4}</span></div>
+    </div>
+    <div class="detail-action-row">
+      <button class="detail-action-btn" onclick="openRequestModal('${h.territory.replace(/'/g,"\\'")}');closeDetail()">Submit request</button>
+      ${currentRole==='nsd'?`<button class="detail-action-btn primary" onclick="openReassignHCPModal('${h.id}','${h.territory.replace(/'/g,"\\'")}');closeDetail()">Reassign HCP</button>`:''}
+    </div>`;
+  document.getElementById('detail-overlay').classList.add('open');
+}
+
+function showRosterDetail(r){
+  const t=terrMap[r.territory];
+  document.getElementById('detail-header').innerHTML=`
+    <div class="sb-avatar ${r.title==='NSD'?'av-nsd':r.title==='DM'?'av-dm':'av-oam'}" style="width:36px;height:36px;font-size:12px">${r.name.split(' ').map(w=>w[0]).slice(0,2).join('')}</div>
+    <div><div style="font-size:13px;font-weight:600">${r.name}</div><div style="font-size:11px;color:var(--text3)">${r.id} · ${r.title}</div></div>
+    <button class="detail-close" onclick="closeDetail()">×</button>`;
+  const isVac=r.name.startsWith('Vacant');
+  document.getElementById('detail-body').innerHTML=`
+    <div class="detail-section">
+      <div class="detail-section-title">Personnel details</div>
+      ${isVac?`<div style="margin-bottom:10px"><span class="badge badge-orange">Position vacant — no rep assigned</span></div>`:''}
+      <div class="detail-row"><span class="detail-key">Role</span><span class="detail-val"><span class="badge ${r.title==='NSD'?'badge-red':r.title==='DM'?'badge-orange':'badge-blue'}">${r.title}</span></span></div>
+      <div class="detail-row"><span class="detail-key">Assigned to</span><span class="detail-val">${r.territory}</span></div>
+      ${t?`<div class="detail-row"><span class="detail-key">District</span><span class="detail-val">${t.district}</span></div>
+      <div class="detail-row"><span class="detail-key">HCPs</span><span class="detail-val">${t.hco_count}</span></div>
+      <div class="detail-row"><span class="detail-key">ZIPs</span><span class="detail-val">${t.zip_count.toLocaleString()}</span></div>
+      <div class="detail-row"><span class="detail-key">Index 3</span><span class="detail-val">${t.idx3}</span></div>`:''}
+    </div>
+    <div class="detail-action-row">
+      ${isVac?`<button class="detail-action-btn primary" onclick="openAssignRepModal('${r.territory.replace(/'/g,"\\'")}');closeDetail()">Assign rep</button>`:
+      `<button class="detail-action-btn" onclick="openRequestModal('${(r.territory||'').replace(/'/g,"\\'")}');closeDetail()">Submit request</button>`}
+    </div>`;
+  document.getElementById('detail-overlay').classList.add('open');
+}
+
+function closeDetail(){ document.getElementById('detail-overlay').classList.remove('open'); }
+
+// === MODALS ===
+function openRequestModal(territory){
+  const t=terrMap[territory]||{};
+  document.getElementById('modal-content').innerHTML=`
+    <div class="modal-title">Submit change request</div>
+    <div class="modal-field"><label>Request type</label>
+      <select id="req-type-m" onchange="updateSimPanel()">
+        <option>Change HCP territory</option><option>Add HCP</option><option>Remove HCP</option>
+        <option>Reassign ZIP</option><option>Reassign OAM</option>
+      </select>
+    </div>
+    <div class="modal-field"><label>Territory / HCP</label>
+      <select id="req-target-m">${getVisibleTerritories().map(t2=>`<option${t2.name===territory?' selected':''}>${t2.name}</option>`).join('')}</select>
+    </div>
+    <div class="ba-grid">
+      <div class="ba-box"><div class="ba-label before">Before</div><div class="ba-val" id="ba-before-m">${territory} → ${t.rep_name||'—'}</div></div>
+      <div class="ba-box"><div class="ba-label after">After</div>
+        <select style="width:100%;font-size:11px;padding:3px 6px;border:1px solid var(--blue);border-radius:5px;background:var(--surface);color:var(--text);font-family:var(--font)" id="ba-after-m">
+          ${getVisibleTerritories().filter(t2=>t2.name!==territory).slice(0,8).map(t2=>`<option>${t2.name} → ${t2.rep_name}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="sim-panel" id="sim-panel">
+      <div class="sim-title">Impact simulation</div>
+      <div class="sim-row"><span class="sim-key">HCP count delta (source)</span><span class="sim-val down">−1 HCP</span></div>
+      <div class="sim-row"><span class="sim-key">Index 1 delta</span><span class="sim-val down">−${t.idx1?Math.round(t.idx1/t.hco_count*10)/10:0}</span></div>
+      <div class="sim-row"><span class="sim-key">Index 2 delta</span><span class="sim-val down">−${t.idx2?Math.round(t.idx2/t.hco_count*10)/10:0}</span></div>
+      <div class="sim-row"><span class="sim-key">Index 3 delta</span><span class="sim-val down">−${t.idx3?Math.round(t.idx3/t.hco_count*10)/10:0}</span></div>
+      <div class="sim-row"><span class="sim-key">Index 4 delta</span><span class="sim-val down">−${t.idx4?Math.round(t.idx4/t.hco_count*10)/10:0}</span></div>
+    </div>
+    <div class="modal-field"><label>Reason tag</label>
+      <select><option>Workload imbalance</option><option>New account</option><option>Account overlap</option><option>Sales opportunity</option><option>Other</option></select>
+    </div>
+    <div class="modal-field"><label>Comments</label><textarea placeholder="Add context for the approver…"></textarea></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-submit" onclick="submitRequest()">Submit request</button>
+    </div>`;
+  document.getElementById('modal-backdrop').classList.add('open');
+}
+
+function editOAM(territory){
+  const t=terrMap[territory];
+  const oams=ROSTER.filter(r=>r.title==='OAM');
+  document.getElementById('modal-content').innerHTML=`
+    <div class="modal-title">Reassign OAM — ${territory}</div>
+    <div class="warn-box">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 2L15 14H1L8 2z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M8 7v3M8 11.5v.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      Direct edit — this action is logged in the audit trail immediately.
+    </div>
+    <div class="modal-field"><label>Current OAM</label><input value="${t.rep_name} (${t.rep_id})" readonly style="color:var(--text3)"></div>
+    <div class="modal-field"><label>New OAM</label>
+      <select id="new-oam-sel">
+        ${oams.map(r=>`<option value="${r.id}">${r.name} (${r.id}) — currently: ${r.territory}</option>`).join('')}
+      </select>
+    </div>
+    <div class="modal-field"><label>Reason</label><textarea placeholder="Reason for reassignment…"></textarea></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-submit" onclick="saveOAMEdit('${territory.replace(/'/g,"\\'")}')">Save change</button>
+    </div>`;
+  document.getElementById('modal-backdrop').classList.add('open');
+}
+
+function saveOAMEdit(territory){
+  const sel=document.getElementById('new-oam-sel');
+  const newRep=ROSTER.find(r=>r.id===sel.value);
+  if(newRep&&terrMap[territory]){
+    const old=terrMap[territory].rep_name;
+    terrMap[territory].rep_name=newRep.name;
+    terrMap[territory].rep_id=newRep.id;
+    TERRITORIES.find(t=>t.name===territory).rep_name=newRep.name;
+    TERRITORIES.find(t=>t.name===territory).rep_id=newRep.id;
+    closeModal(); renderTerrTable();
+    showToast(`${territory} reassigned to ${newRep.name}`,'success');
+  }
+}
+
+function openReassignHCPModal(hcpId,currentTerr){
+  document.getElementById('modal-content').innerHTML=`
+    <div class="modal-title">Reassign HCP — ${hcpId}</div>
+    <div class="modal-field"><label>Current territory</label><input value="${currentTerr}" readonly style="color:var(--text3)"></div>
+    <div class="modal-field"><label>New territory</label>
+      <select id="new-terr-sel">${getVisibleTerritories().filter(t=>t.name!==currentTerr).map(t=>`<option>${t.name}</option>`).join('')}</select>
+    </div>
+    <div class="modal-field"><label>Reason tag</label>
+      <select><option>Workload imbalance</option><option>Account overlap</option><option>Sales opportunity</option><option>Other</option></select>
+    </div>
+    <div class="modal-field"><label>Comments</label><textarea placeholder="Add context…"></textarea></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-submit" onclick="closeModal();showToast('Request submitted for ${hcpId}','success')">Submit request</button>
+    </div>`;
+  document.getElementById('modal-backdrop').classList.add('open');
+}
+
+function openAssignRepModal(territory){
+  const oams=ROSTER.filter(r=>r.title==='OAM');
+  document.getElementById('modal-content').innerHTML=`
+    <div class="modal-title">Assign rep — ${territory}</div>
+    <div class="modal-field"><label>Select OAM to assign</label>
+      <select>${oams.map(r=>`<option value="${r.id}">${r.name} (${r.id}) — ${r.territory}</option>`).join('')}</select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-submit" onclick="closeModal();showToast('${territory} assigned — audit logged','success')">Assign</button>
+    </div>`;
+  document.getElementById('modal-backdrop').classList.add('open');
+}
+
+function openNewMappingModal(){
+  document.getElementById('modal-content').innerHTML=`
+    <div class="modal-title">Add new mapping</div>
+    <div class="modal-field"><label>Mapping type</label>
+      <select><option>ZIP → Territory</option><option>HCP → Territory</option><option>Territory → OAM</option></select>
+    </div>
+    <div class="modal-field"><label>Source (ZIP / HCP ID)</label><input placeholder="e.g. 90210 or HCP00012345"></div>
+    <div class="modal-field"><label>Target territory</label>
+      <select>${TERRITORIES.map(t=>`<option>${t.name}</option>`).join('')}</select>
+    </div>
+    <div class="modal-field"><label>Notes</label><textarea placeholder="Reason for new mapping…"></textarea></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-submit" onclick="closeModal();showToast('New mapping saved — audit logged','success')">Save mapping</button>
+    </div>`;
+  document.getElementById('modal-backdrop').classList.add('open');
+}
+
+function reassignHCP(id,newTerr){ showToast(`${id} reassignment logged → ${newTerr}`,'success'); }
+function reassignZIP(zip,newTerr){ showToast(`ZIP ${zip} reassignment logged → ${newTerr}`,'success'); }
+function submitRequest(){ closeModal(); showToast('Request submitted — pending DM/NSD approval','success'); }
+function updateSimPanel(){}
+function closeModal(){ document.getElementById('modal-backdrop').classList.remove('open'); }
+
+// === VIEWS ===
+function setView(v,el){
+  document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
+  if(el) el.classList.add('active');
+  switchSubTab(v, document.getElementById('tab-'+v));
+}
+
+function switchSubTab(tab,btn){
+  document.querySelectorAll('.subtab').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+tab).classList.add('active');
+  if(tab==='territories') renderTerrTable();
+  else if(tab==='hcps') renderHCPTable();
+  else if(tab==='zips') renderZIPTable();
+  else if(tab==='roster') renderRosterTable();
+}
+
+// === EXPORT ===
+function exportZTT(){
+  const csv=['ZIP,City,Territory,District,OAM,Rep_ID'];
+  getVisibleTerritories().forEach(t=>{
+    const zips=ZIP_SAMPLE[t.name]||[];
+    zips.forEach(z=>csv.push(`${z.zip},"${z.city}","${t.name}",${t.district},"${t.rep_name}",${t.rep_id}`));
+  });
+  const blob=new Blob([csv.join('\n')],{type:'text/csv'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download=`ZTT_export_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+  showToast('ZTT mapping exported (sample data)','success');
+}
+
+// === TOAST ===
+function showToast(msg,type=''){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast'+(type?' '+type:'');
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+// === INIT ===
+function renderAll(){
+  renderTerrTable();
+  renderRosterTable();
+}
+
+applyRole();
+</script>
+</body>
+</html>

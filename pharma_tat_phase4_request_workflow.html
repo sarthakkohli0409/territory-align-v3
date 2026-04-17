@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TerritoryAlign — Phase 4: Request Workflow</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f5f7;--surface:#fff;--surface2:#f5f5f7;--surface3:#eeeef0;
+  --border:#e0e0e0;--border2:#c8c8cc;
+  --text:#1d1d1f;--text2:#555;--text3:#888;--text4:#aaa;
+  --blue:#0071e3;--blue-bg:#e8f0fe;--blue-text:#0058b0;
+  --green:#34c759;--green-bg:#e8f8f0;--green-text:#1a7a3c;
+  --red:#ff3b30;--red-bg:#fde8e8;--red-text:#c0392b;
+  --orange:#ff9500;--orange-bg:#fff3e0;--orange-text:#7a5000;
+  --purple:#9b59b6;--purple-bg:#f3e8fd;--purple-text:#6c3483;
+  --font:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --r:8px;--r2:12px
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+/* TOP BAR */
+.topbar{height:52px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:12px;flex-shrink:0}
+.app-logo{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:600}
+.logo-icon{width:28px;height:28px;background:var(--blue-bg);border-radius:7px;display:flex;align-items:center;justify-content:center}
+.logo-icon svg{width:16px;height:16px}
+.phase-badge{font-size:10px;padding:3px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text3)}
+.topbar-sep{flex:1}
+.role-switcher{display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 12px 4px 8px;font-size:12px;cursor:pointer;user-select:none}
+.role-dot{width:8px;height:8px;border-radius:50%}
+.role-dot.nsd{background:var(--red)}.role-dot.dm{background:var(--orange)}.role-dot.oam{background:var(--green)}
+.tb-btn{padding:6px 14px;font-size:12px;font-family:var(--font);background:var(--surface);border:1px solid var(--border2);border-radius:20px;cursor:pointer;color:var(--text2);display:flex;align-items:center;gap:5px}
+.tb-btn:hover{border-color:var(--blue);color:var(--blue)}
+.tb-btn svg{width:12px;height:12px}
+.tb-btn.primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+.tb-btn.primary:hover{background:#005cc5;border-color:#005cc5;color:#fff}
+
+/* LAYOUT */
+.app-body{flex:1;display:flex;overflow:hidden}
+
+/* SIDEBAR */
+.sidebar{width:220px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column}
+.sb-user{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:9px}
+.sb-av{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0}
+.av-nsd{background:var(--red-bg);color:var(--red-text)}.av-dm{background:var(--orange-bg);color:var(--orange-text)}.av-oam{background:var(--green-bg);color:var(--green-text)}
+.sb-name{font-size:12px;font-weight:600;color:var(--text)}
+.sb-sub{font-size:10px;color:var(--text3)}
+.nav-g{padding:6px 0}
+.nav-lbl{font-size:10px;font-weight:600;color:var(--text4);text-transform:uppercase;letter-spacing:.5px;padding:3px 14px}
+.nav-i{display:flex;align-items:center;gap:8px;padding:7px 14px;font-size:12px;color:var(--text2);cursor:pointer;border-left:2px solid transparent}
+.nav-i svg{width:13px;height:13px;flex-shrink:0;opacity:.7}
+.nav-i:hover{color:var(--text);background:var(--surface2)}
+.nav-i.active{color:var(--blue);background:var(--blue-bg);border-left-color:var(--blue);font-weight:500}
+.nav-i.active svg{opacity:1}
+.nb{margin-left:auto;font-size:10px;padding:1px 6px;border-radius:8px;background:var(--red-bg);color:var(--red-text);font-weight:600}
+.sb-footer{margin-top:auto;padding:10px 14px;border-top:1px solid var(--border)}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+
+/* STATUS TABS */
+.status-bar{display:flex;align-items:center;padding:0 20px;background:var(--surface);border-bottom:1px solid var(--border);gap:0;flex-shrink:0}
+.stab{padding:10px 16px;font-size:12px;font-family:var(--font);border:none;background:none;cursor:pointer;color:var(--text3);border-bottom:2px solid transparent;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.stab:hover{color:var(--text)}
+.stab.active{color:var(--blue);border-bottom-color:var(--blue);font-weight:500}
+.stab-count{font-size:10px;padding:1px 6px;border-radius:8px;background:var(--surface2);color:var(--text3)}
+.stab.active .stab-count{background:var(--blue-bg);color:var(--blue-text)}
+.stab-count.red{background:var(--red-bg);color:var(--red-text)}
+.status-bar-sep{flex:1}
+
+/* CONTENT */
+.content{flex:1;overflow:hidden;display:flex}
+.req-list-pane{width:340px;flex-shrink:0;border-right:1px solid var(--border);overflow-y:auto;background:var(--surface)}
+.req-detail-pane{flex:1;overflow-y:auto;background:var(--bg);min-width:0}
+
+/* REQUEST LIST */
+.req-list-header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.req-list-search{flex:1;font-size:11px;padding:6px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:var(--font);outline:none}
+.req-list-search:focus{border-color:var(--blue)}
+.req-list-filter{font-size:11px;padding:6px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:var(--font);outline:none}
+.req-card{padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;flex-direction:column;gap:4px}
+.req-card:hover{background:var(--surface2)}
+.req-card.active{background:var(--blue-bg);border-left:3px solid var(--blue)}
+.req-card-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.req-id{font-size:10px;font-family:monospace;color:var(--text3)}
+.req-type-tag{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:500;white-space:nowrap}
+.rt-change{background:var(--blue-bg);color:var(--blue-text)}
+.rt-add{background:var(--green-bg);color:var(--green-text)}
+.rt-remove{background:var(--red-bg);color:var(--red-text)}
+.rt-zip{background:var(--purple-bg);color:var(--purple-text)}
+.rt-rep{background:var(--orange-bg);color:var(--orange-text)}
+.req-card-title{font-size:12px;font-weight:500;color:var(--text);line-height:1.3}
+.req-card-meta{font-size:10px;color:var(--text3);display:flex;align-items:center;gap:6px}
+.req-card-meta-dot{width:3px;height:3px;border-radius:50%;background:var(--text4)}
+.status-pip{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.sp-pending{background:var(--orange)}.sp-approved{background:var(--green)}.sp-rejected{background:var(--red)}.sp-review{background:var(--blue)}
+.conflict-pip{width:7px;height:7px;border-radius:50%;background:var(--red);flex-shrink:0}
+
+/* DETAIL PANE */
+.detail-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;color:var(--text3)}
+.detail-empty svg{width:48px;height:48px;opacity:.2}
+.detail-empty p{font-size:13px}
+
+.detail-inner{padding:24px}
+.detail-head{display:flex;align-items:flex-start;gap:14px;margin-bottom:20px}
+.detail-icon{width:44px;height:44px;border-radius:var(--r2);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.detail-title{font-size:18px;font-weight:600;color:var(--text);margin-bottom:3px}
+.detail-sub{font-size:12px;color:var(--text3);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.status-badge{font-size:11px;padding:3px 10px;border-radius:10px;font-weight:500}
+.sb-pending{background:var(--orange-bg);color:var(--orange-text)}
+.sb-approved{background:var(--green-bg);color:var(--green-text)}
+.sb-rejected{background:var(--red-bg);color:var(--red-text)}
+.sb-review{background:var(--blue-bg);color:var(--blue-text)}
+
+/* WORKFLOW STEPS */
+.workflow-strip{display:flex;align-items:center;gap:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);padding:14px 20px;margin-bottom:20px}
+.wf-step{display:flex;flex-direction:column;align-items:center;flex:1;position:relative}
+.wf-step:not(:last-child)::after{content:'';position:absolute;top:15px;left:calc(50% + 16px);right:calc(-50% + 16px);height:2px;background:var(--border)}
+.wf-step.done::after{background:var(--green)}
+.wf-step.active-step::after{background:var(--blue)}
+.wf-circle{width:30px;height:30px;border-radius:50%;border:2px solid var(--border);background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--text3);margin-bottom:5px;z-index:1;position:relative}
+.wf-step.done .wf-circle{border-color:var(--green);background:var(--green-bg);color:var(--green-text)}
+.wf-step.active-step .wf-circle{border-color:var(--blue);background:var(--blue-bg);color:var(--blue-text)}
+.wf-step.rejected-step .wf-circle{border-color:var(--red);background:var(--red-bg);color:var(--red-text)}
+.wf-label{font-size:10px;color:var(--text3);font-weight:500;text-align:center}
+.wf-step.done .wf-label{color:var(--green-text)}
+.wf-step.active-step .wf-label{color:var(--blue-text)}
+.wf-step.rejected-step .wf-label{color:var(--red-text)}
+
+/* TWO COL */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+
+/* CARDS */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);padding:16px}
+.card-title{font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:12px}
+.info-row{display:flex;justify-content:space-between;align-items:flex-start;padding:5px 0;border-bottom:1px solid var(--surface2);font-size:12px}
+.info-row:last-child{border-bottom:none}
+.info-k{color:var(--text3)}.info-v{font-weight:500;color:var(--text);text-align:right}
+
+/* BEFORE / AFTER */
+.ba-row{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;margin-bottom:16px}
+.ba-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);padding:14px}
+.ba-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px}
+.ba-label.before{color:var(--red-text)}.ba-label.after{color:var(--green-text)}
+.ba-terr{font-size:14px;font-weight:600;color:var(--text);margin-bottom:3px}
+.ba-rep{font-size:11px;color:var(--text3)}
+.ba-arrow{font-size:20px;color:var(--text4);text-align:center}
+
+/* SIMULATION */
+.sim-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);padding:16px;margin-bottom:16px}
+.sim-title{font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+.sim-table{width:100%;border-collapse:collapse;font-size:12px}
+.sim-table th{text-align:left;padding:6px 10px;font-size:10px;font-weight:600;color:var(--text3);background:var(--surface2);border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.3px}
+.sim-table td{padding:8px 10px;border-bottom:1px solid var(--surface2)}
+.sim-table tr:last-child td{border-bottom:none}
+.sim-table .metric-col{color:var(--text3);font-size:11px}
+.sim-table .before-col{font-weight:500}
+.sim-table .after-col{font-weight:500}
+.sim-table .delta-col{font-weight:600}
+.delta-up{color:var(--green-text)}.delta-down{color:var(--red-text)}.delta-neutral{color:var(--text3)}
+.mini-bar-wrap{display:flex;align-items:center;gap:6px}
+.mini-bar-bg{width:60px;height:4px;background:var(--surface3);border-radius:2px;overflow:hidden;flex-shrink:0}
+.mini-bar-fill{height:100%;border-radius:2px}
+
+/* CONFLICT */
+.conflict-card{background:var(--orange-bg);border:1px solid #f5c842;border-radius:var(--r2);padding:14px 16px;margin-bottom:16px}
+.conflict-title{font-size:12px;font-weight:600;color:var(--orange-text);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.conflict-item{font-size:11px;color:var(--orange-text);padding:4px 0;border-bottom:1px solid rgba(0,0,0,.06);display:flex;align-items:center;gap:8px}
+.conflict-item:last-child{border-bottom:none}
+.conflict-item svg{width:12px;height:12px;flex-shrink:0}
+
+/* COMMENTS */
+.comment-thread{margin-bottom:16px}
+.comment{display:flex;gap:10px;margin-bottom:12px}
+.comment-av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;flex-shrink:0}
+.comment-body{flex:1}
+.comment-header{display:flex;align-items:center;gap:8px;margin-bottom:3px}
+.comment-name{font-size:11px;font-weight:600;color:var(--text)}
+.comment-time{font-size:10px;color:var(--text4)}
+.comment-text{font-size:12px;color:var(--text2);line-height:1.5}
+.comment-input-row{display:flex;gap:8px;align-items:flex-start}
+.comment-input{flex:1;font-size:12px;padding:8px 11px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:var(--font);resize:none;outline:none;min-height:60px}
+.comment-input:focus{border-color:var(--blue)}
+.comment-send-btn{padding:8px 14px;font-size:11px;font-family:var(--font);background:var(--blue);color:#fff;border:none;border-radius:var(--r);cursor:pointer;font-weight:500;align-self:flex-end}
+
+/* ACTION FOOTER */
+.action-footer{background:var(--surface);border-top:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.action-note{font-size:11px;color:var(--text3);flex:1}
+.act-btn{padding:9px 20px;font-size:13px;font-weight:600;font-family:var(--font);border-radius:var(--r);cursor:pointer;display:flex;align-items:center;gap:6px}
+.act-btn svg{width:14px;height:14px}
+.btn-approve{background:var(--green-bg);color:var(--green-text);border:1.5px solid var(--green)}
+.btn-approve:hover{background:#d4f5e2}
+.btn-reject{background:var(--red-bg);color:var(--red-text);border:1.5px solid var(--red)}
+.btn-reject:hover{background:#fdd}
+.btn-request{background:var(--blue);color:#fff;border:none}
+.btn-request:hover{background:#005cc5}
+.btn-secondary{background:var(--surface2);color:var(--text2);border:1px solid var(--border2)}
+.btn-secondary:hover{border-color:var(--blue);color:var(--blue)}
+
+/* NEW REQUEST FORM */
+.form-pane{padding:24px;overflow-y:auto;height:100%}
+.form-title{font-size:18px;font-weight:600;margin-bottom:20px}
+.form-section{margin-bottom:20px}
+.form-section-title{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.field{margin-bottom:12px}
+.field label{font-size:11px;font-weight:600;color:var(--text3);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.3px}
+.field input,.field select,.field textarea{width:100%;font-size:12px;padding:8px 11px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:var(--font);outline:none}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--blue)}
+.field textarea{resize:vertical;min-height:72px}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.sim-preview{background:var(--surface2);border-radius:var(--r);padding:14px;margin-top:8px}
+.sim-preview-title{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.3px;margin-bottom:8px}
+.sim-preview-row{display:flex;justify-content:space-between;font-size:11px;padding:3px 0}
+.conflict-preview{background:var(--orange-bg);border:1px solid #f5c842;border-radius:var(--r);padding:10px 12px;margin-top:8px;font-size:11px;color:var(--orange-text);display:flex;gap:7px;align-items:flex-start;display:none}
+.form-footer{display:flex;gap:10px;justify-content:flex-end;padding-top:12px;border-top:1px solid var(--border);margin-top:4px}
+.btn-cancel-f{padding:9px 18px;font-size:12px;font-family:var(--font);background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);cursor:pointer;color:var(--text)}
+.btn-submit-f{padding:9px 18px;font-size:12px;font-weight:600;font-family:var(--font);background:var(--blue);color:#fff;border:none;border-radius:var(--r);cursor:pointer}
+.btn-submit-f:hover{background:#005cc5}
+
+/* BADGE */
+.badge{display:inline-flex;align-items:center;font-size:10px;padding:2px 8px;border-radius:10px;font-weight:500}
+
+/* TOAST */
+.toast{position:fixed;bottom:18px;right:18px;background:var(--text);color:#fff;border-radius:var(--r);padding:11px 16px;font-size:12px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9999;max-width:300px}
+.toast.show{opacity:1}
+.toast.success{background:#1a7a3c}
+.toast.warn{background:var(--orange-text)}
+.toast.error{background:var(--red-text)}
+
+/* METRICS SUMMARY */
+.metrics-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;padding:16px 20px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
+.mc{background:var(--surface2);border-radius:var(--r);padding:10px 12px}
+.mc-lbl{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
+.mc-val{font-size:22px;font-weight:600;line-height:1}
+.mc-sub{font-size:10px;color:var(--text3);margin-top:2px}
+.mc-sub.up{color:var(--green-text)}.mc-sub.warn{color:var(--orange-text)}.mc-sub.danger{color:var(--red-text)}
+
+/* DOT */
+.t-dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex-shrink:0;margin-right:4px}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="app-logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="5.5" stroke="var(--blue)" stroke-width="1.4"/><path d="M4 8 Q6 5.5 8 8 Q10 10.5 12 8" stroke="var(--blue)" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg>
+    </div>
+    TerritoryAlign
+  </div>
+  <span class="phase-badge">Phase 4 — Request Workflow</span>
+  <div class="topbar-sep"></div>
+  <div class="role-switcher" onclick="cycleRole()">
+    <span class="role-dot" id="role-dot"></span>
+    <span id="role-lbl">NSD</span>
+    <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 3.5l3 3 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+  </div>
+  <button class="tb-btn primary" onclick="showNewRequest()">
+    <svg viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+    New request
+  </button>
+</div>
+
+<div class="app-body">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sb-user">
+      <div class="sb-av" id="sb-av"></div>
+      <div>
+        <div class="sb-name" id="sb-name"></div>
+        <div class="sb-sub" id="sb-sub"></div>
+      </div>
+    </div>
+    <div class="nav-g">
+      <div class="nav-lbl">Overview</div>
+      <div class="nav-i"><svg viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.2"/><rect x="9" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.2"/><rect x="1" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.2"/><rect x="9" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.2"/></svg>Dashboard</div>
+      <div class="nav-i"><svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="7" r="4" stroke="currentColor" stroke-width="1.2"/><circle cx="8" cy="7" r="1.5" fill="currentColor"/></svg>Map view</div>
+    </div>
+    <div class="nav-g">
+      <div class="nav-lbl">Alignment</div>
+      <div class="nav-i"><svg viewBox="0 0 16 16" fill="none"><path d="M2 4h12M2 8h8M2 12h10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>Territories</div>
+      <div class="nav-i"><svg viewBox="0 0 16 16" fill="none"><rect x="2" y="4" width="12" height="9" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M8 7v4M6 9h4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>HCPs &amp; ZIPs</div>
+    </div>
+    <div class="nav-g">
+      <div class="nav-lbl">Workflow</div>
+      <div class="nav-i active"><svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.2"/><path d="M5.5 8l2 2 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Requests<span class="nb" id="nav-badge">3</span></div>
+      <div class="nav-i"><svg viewBox="0 0 16 16" fill="none"><rect x="3" y="2" width="10" height="12" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M5.5 6h5M5.5 9h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>Audit log</div>
+    </div>
+    <div class="nav-g" id="admin-nav">
+      <div class="nav-lbl">Admin</div>
+      <div class="nav-i"><svg viewBox="0 0 16 16" fill="none"><path d="M8 10V3M5 6l3-3 3 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 13h12" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>Bulk upload</div>
+    </div>
+    <div class="sb-footer">
+      <button style="font-size:12px;color:var(--text3);cursor:pointer;background:none;border:none;font-family:var(--font);display:flex;align-items:center;gap:6px">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M6 14H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h3M11 11l3-3-3-3M14 8H6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Sign out
+      </button>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- METRICS -->
+    <div class="metrics-row" id="metrics-row"></div>
+
+    <!-- STATUS TABS -->
+    <div class="status-bar">
+      <button class="stab active" onclick="filterStatus('all',this)">All requests <span class="stab-count" id="sc-all">0</span></button>
+      <button class="stab" onclick="filterStatus('Pending',this)">Pending <span class="stab-count red" id="sc-pending">0</span></button>
+      <button class="stab" onclick="filterStatus('DM Review',this)">DM review <span class="stab-count" id="sc-dm">0</span></button>
+      <button class="stab" onclick="filterStatus('Approved',this)">Approved <span class="stab-count" id="sc-approved">0</span></button>
+      <button class="stab" onclick="filterStatus('Rejected',this)">Rejected <span class="stab-count" id="sc-rejected">0</span></button>
+      <div class="status-bar-sep"></div>
+      <select style="font-size:11px;padding:5px 9px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:var(--font);margin:6px 0" id="type-filter" onchange="renderList()">
+        <option value="">All types</option>
+        <option>Change HCP territory</option>
+        <option>Add HCP</option>
+        <option>Remove HCP</option>
+        <option>Reassign ZIP</option>
+        <option>Reassign OAM</option>
+      </select>
+    </div>
+
+    <!-- CONTENT SPLIT -->
+    <div class="content">
+
+      <!-- LEFT: REQUEST LIST -->
+      <div class="req-list-pane">
+        <div class="req-list-header">
+          <input class="req-list-search" placeholder="Search requests..." id="req-search" oninput="renderList()">
+        </div>
+        <div id="req-list"></div>
+      </div>
+
+      <!-- RIGHT: DETAIL / NEW REQUEST -->
+      <div class="req-detail-pane" id="req-detail-pane">
+        <div class="detail-empty" id="detail-empty">
+          <svg viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="20" stroke="currentColor" stroke-width="1.5"/><path d="M16 24l6 6 10-10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <p>Select a request to review</p>
+        </div>
+        <div id="detail-view" style="display:none;height:100%;display:none;flex-direction:column">
+          <div style="flex:1;overflow-y:auto" id="detail-scroll"></div>
+          <div class="action-footer" id="action-footer"></div>
+        </div>
+        <div id="new-req-view" style="display:none;height:100%;overflow-y:auto"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const TERRITORIES={
+  "ALBANY, NY":{name:"ALBANY, NY",district:"NORTHEAST",rep_id:"E001",rep_name:"Rep 1",hco_count:194,zip_count:1583,idx1:939.2,idx2:934.4,idx3:961.3,idx4:947.1,color:"#378ADD"},
+  "ATLANTA E, GA":{name:"ATLANTA E, GA",district:"SOUTHEAST",rep_id:"E002",rep_name:"Rep 2",hco_count:121,zip_count:382,idx1:934.4,idx2:915.5,idx3:943.4,idx4:959.8,color:"#1D9E75"},
+  "BOSTON, MA":{name:"BOSTON, MA",district:"NORTHEAST",rep_id:"E005",rep_name:"Rep 5",hco_count:308,zip_count:2197,idx1:981.2,idx2:1133.8,idx3:812.5,idx4:747.5,color:"#EF9F27"},
+  "BROOKLYN, NY":{name:"BROOKLYN, NY",district:"NORTHEAST",rep_id:"E006",rep_name:"Rep 6",hco_count:184,zip_count:416,idx1:848.0,idx2:1169.6,idx3:506.1,idx4:487.8,color:"#D4537E"},
+  "CHARLESTON, SC":{name:"CHARLESTON, SC",district:"SOUTHEAST",rep_id:"E008",rep_name:"Rep 8",hco_count:110,zip_count:458,idx1:895.9,idx2:877.8,idx3:927.6,idx4:931.3,color:"#39b54a"},
+  "CHARLOTTE, NC":{name:"CHARLOTTE, NC",district:"SOUTHEAST",rep_id:"E009",rep_name:"Rep 9",hco_count:138,zip_count:900,idx1:872.7,idx2:913.2,idx3:824.4,idx4:820.4,color:"#e84393"},
+  "CHICAGO N, IL":{name:"CHICAGO N, IL",district:"NORTH CENTRAL",rep_id:"E010",rep_name:"Rep 10",hco_count:139,zip_count:420,idx1:845.0,idx2:916.9,idx3:755.2,idx4:766.6,color:"#00bcd4"},
+  "CHICAGO S, IL":{name:"CHICAGO S, IL",district:"NORTH CENTRAL",rep_id:"E011",rep_name:"Rep 11",hco_count:169,zip_count:526,idx1:1276.6,idx2:1278.7,idx3:1262.5,idx4:1276.5,color:"#ff5722"},
+  "CINCINNATI, OH":{name:"CINCINNATI, OH",district:"NORTHEAST",rep_id:"E012",rep_name:"Rep 12",hco_count:134,zip_count:656,idx1:946.5,idx2:926.9,idx3:971.5,idx4:969.3,color:"#9c27b0"},
+  "COLUMBUS, OH":{name:"COLUMBUS, OH",district:"NORTHEAST",rep_id:"E013",rep_name:"Rep 13",hco_count:176,zip_count:1224,idx1:1257.4,idx2:1176.1,idx3:1339.9,idx4:1336.7,color:"#3f51b5"},
+  "DALLAS, TX":{name:"DALLAS, TX",district:"SOUTH CENTRAL",rep_id:"E048",rep_name:"Vacant Territory 1",hco_count:180,zip_count:770,idx1:1038.0,idx2:1106.8,idx3:954.1,idx4:950.3,color:"#009688"},
+  "DENVER, CO":{name:"DENVER, CO",district:"WEST",rep_id:"E015",rep_name:"Rep 15",hco_count:159,zip_count:990,idx1:958.8,idx2:994.6,idx3:929.9,idx4:928.1,color:"#ff9800"},
+  "DETROIT N, MI":{name:"DETROIT N, MI",district:"NORTH CENTRAL",rep_id:"E016",rep_name:"Rep 16",hco_count:176,zip_count:888,idx1:1222.2,idx2:1187.1,idx3:1261.3,idx4:1260.7,color:"#795548"},
+  "FT LAUDERDALE, FL":{name:"FT LAUDERDALE, FL",district:"SOUTHEAST",rep_id:"E017",rep_name:"Rep 17",hco_count:135,zip_count:433,idx1:1015.3,idx2:949.0,idx3:1106.4,idx4:1137.2,color:"#e91e63"},
+  "HOUSTON, TX":{name:"HOUSTON, TX",district:"SOUTH CENTRAL",rep_id:"E018",rep_name:"Rep 18",hco_count:153,zip_count:419,idx1:1148.2,idx2:1194.2,idx3:1103.6,idx4:1111.8,color:"#2196f3"},
+  "JACKSONVILLE, FL":{name:"JACKSONVILLE, FL",district:"SOUTHEAST",rep_id:"E020",rep_name:"Rep 20",hco_count:90,zip_count:419,idx1:858.5,idx2:806.4,idx3:941.4,idx4:962.9,color:"#ff6347"},
+  "LOS ANGELES E, CA":{name:"LOS ANGELES E, CA",district:"WEST",rep_id:"E021",rep_name:"Rep 21",hco_count:110,zip_count:244,idx1:1101.1,idx2:1027.7,idx3:1187.5,idx4:1219.5,color:"#8bc34a"},
+  "LOS ANGELES W, CA":{name:"LOS ANGELES W, CA",district:"WEST",rep_id:"E050",rep_name:"Vacant Territory 3",hco_count:120,zip_count:261,idx1:1041.1,idx2:947.2,idx3:1135.5,idx4:1156.2,color:"#00acc1"},
+  "LOUISVILLE, KY":{name:"LOUISVILLE, KY",district:"SOUTH CENTRAL",rep_id:"E022",rep_name:"Rep 22",hco_count:158,zip_count:2155,idx1:1284.6,idx2:1182.8,idx3:1398.8,idx4:1425.4,color:"#ab47bc"},
+  "MANHATTAN, NY":{name:"MANHATTAN, NY",district:"NORTHEAST",rep_id:"E023",rep_name:"Rep 23",hco_count:137,zip_count:219,idx1:816.0,idx2:950.0,idx3:676.4,idx4:668.4,color:"#26a69a"},
+  "NASHVILLE, TN":{name:"NASHVILLE, TN",district:"SOUTH CENTRAL",rep_id:"E026",rep_name:"Rep 26",hco_count:185,zip_count:754,idx1:1134.4,idx2:1198.3,idx3:1068.6,idx4:1051.6,color:"#42a5f5"},
+  "NEW JERSEY, NJ":{name:"NEW JERSEY, NJ",district:"NORTHEAST",rep_id:"E027",rep_name:"Rep 27",hco_count:186,zip_count:526,idx1:929.3,idx2:1096.8,idx3:740.6,idx4:728.5,color:"#66bb6a"},
+  "NEW ORLEANS, LA":{name:"NEW ORLEANS, LA",district:"SOUTH CENTRAL",rep_id:"E028",rep_name:"Rep 28",hco_count:134,zip_count:1155,idx1:1255.2,idx2:1098.1,idx3:1440.2,idx4:1479.3,color:"#ec407a"},
+  "PENNSYLVANIA, PA":{name:"PENNSYLVANIA, PA",district:"NORTHEAST",rep_id:"E007",rep_name:"Rep 7",hco_count:173,zip_count:1736,idx1:1205.0,idx2:1149.8,idx3:1259.1,idx4:1232.2,color:"#d4e157"},
+  "PHILADELPHIA, PA":{name:"PHILADELPHIA, PA",district:"NORTHEAST",rep_id:"E032",rep_name:"Rep 32",hco_count:185,zip_count:800,idx1:859.6,idx2:962.5,idx3:743.9,idx4:715.9,color:"#8d6e63"},
+  "SACRAMENTO, CA":{name:"SACRAMENTO, CA",district:"WEST",rep_id:"E037",rep_name:"Rep 37",hco_count:95,zip_count:723,idx1:930.5,idx2:844.2,idx3:1016.9,idx4:1032.6,color:"#4dd0e1"},
+  "SAINT LOUIS, MO":{name:"SAINT LOUIS, MO",district:"SOUTH CENTRAL",rep_id:"E038",rep_name:"Rep 38",hco_count:114,zip_count:1490,idx1:955.9,idx2:890.6,idx3:1025.7,idx4:1054.8,color:"#aed581"},
+  "SAN ANTONIO, TX":{name:"SAN ANTONIO, TX",district:"SOUTH CENTRAL",rep_id:"E040",rep_name:"Rep 40",hco_count:85,zip_count:505,idx1:1123.6,idx2:1021.2,idx3:1227.8,idx4:1273.4,color:"#f48fb1"},
+  "SAN FRANCISCO, CA":{name:"SAN FRANCISCO, CA",district:"WEST",rep_id:"E041",rep_name:"Rep 41",hco_count:138,zip_count:441,idx1:1105.8,idx2:1101.9,idx3:1099.5,idx4:1108.6,color:"#ce93d8"},
+  "SAN JOSE, CA":{name:"SAN JOSE, CA",district:"WEST",rep_id:"E042",rep_name:"Rep 42",hco_count:122,zip_count:398,idx1:1299.1,idx2:1189.9,idx3:1406.2,idx4:1441.2,color:"#ffca28"},
+  "SEATTLE, WA":{name:"SEATTLE, WA",district:"NORTH CENTRAL",rep_id:"E043",rep_name:"Rep 43",hco_count:156,zip_count:826,idx1:996.6,idx2:996.2,idx3:990.7,idx4:997.8,color:"#ff8a65"},
+  "TAMPA, FL":{name:"TAMPA, FL",district:"SOUTHEAST",rep_id:"E044",rep_name:"Rep 44",hco_count:143,zip_count:507,idx1:736.6,idx2:831.2,idx3:629.0,idx4:617.7,color:"#a1887f"},
+  "TULSA, OK":{name:"TULSA, OK",district:"SOUTH CENTRAL",rep_id:"E045",rep_name:"Rep 45",hco_count:121,zip_count:1558,idx1:1152.6,idx2:992.6,idx3:1343.6,idx4:1362.1,color:"#90a4ae"},
+  "WASHINGTON, DC":{name:"WASHINGTON, DC",district:"NORTHEAST",rep_id:"E046",rep_name:"Rep 46",hco_count:183,zip_count:1580,idx1:1121.4,idx2:1238.4,idx3:983.3,idx4:956.6,color:"#80cbc4"},
+  "WICHITA, KS":{name:"WICHITA, KS",district:"SOUTH CENTRAL",rep_id:"E047",rep_name:"Rep 47",hco_count:107,zip_count:1226,idx1:1055.4,idx2:945.0,idx3:1204.2,idx4:1219.5,color:"#ffe082"}
+};
+
+const TERR_LIST=Object.values(TERRITORIES);
+
+const TYPE_COLORS={'Change HCP territory':'rt-change','Add HCP':'rt-add','Remove HCP':'rt-remove','Reassign ZIP':'rt-zip','Reassign OAM':'rt-rep'};
+const STATUS_COLORS={'Pending':'sb-pending','DM Review':'sb-review','Approved':'sb-approved','Rejected':'sb-rejected'};
+const STATUS_PIP={'Pending':'sp-pending','DM Review':'sp-review','Approved':'sp-approved','Rejected':'sp-rejected'};
+
+let reqIdCounter=42;
+function newId(){return'REQ-0'+String(++reqIdCounter).padStart(2,'0');}
+
+const REQUESTS=[
+  {id:'REQ-041',type:'Change HCP territory',status:'Pending',requester:'Rep 1 (E001)',requesterRole:'OAM',district:'NORTHEAST',
+   sourceTerr:'ALBANY, NY',targetTerr:'BOSTON, MA',hcpId:'HCP00001485',hcpCity:'Albany, NY',hcpTier:'Tier 3',hcpI3:194.8,
+   reason:'Workload imbalance',comments:'Albany territory is over-indexed on Index 3. Moving HCP00001485 to Boston balances workload.',
+   ts:'Apr 15 2026, 09:12',updatedTs:'Apr 15 2026, 09:12',
+   thread:[{user:'Rep 1 (E001)',role:'OAM',time:'Apr 15, 09:12',text:'Requesting territory move — Albany HCP count is 194 vs Boston 308 but Index 3 much higher per HCP on my side.',av:'av-oam',initials:'R1'}],
+   conflicts:['HCP00001485 is a high-value Tier 3 account — moving may affect Albany Index 3 significantly']},
+  {id:'REQ-040',type:'Reassign ZIP',status:'DM Review',requester:'District Manager 1 (E051)',requesterRole:'DM',district:'NORTHEAST',
+   sourceTerr:'SACRAMENTO, CA',targetTerr:'ALBANY, NY',hcpId:null,zip:'89511',zipCity:'Reno, NV',
+   reason:'Account overlap',comments:'ZIP 89511 (Reno NV) is currently dual-mapped. Resolving to Sacramento.',
+   ts:'Apr 14 2026, 15:44',updatedTs:'Apr 15 2026, 08:00',
+   thread:[
+     {user:'District Manager 1 (E051)',role:'DM',time:'Apr 14, 15:44',text:'ZIP 89511 is mapped to both Sacramento and Albany. Proposing to assign exclusively to Sacramento per geographic logic.',av:'av-dm',initials:'DM'},
+     {user:'Rep 37 (E037)',role:'OAM',time:'Apr 14, 16:20',text:'Confirmed — this ZIP has been causing confusion for 2 quarters. Sacramento assignment makes sense.',av:'av-oam',initials:'R3'}
+   ],
+   conflicts:['ZIP 89511 currently appears in both Sacramento, CA and Albany, NY ZTT entries — dual-mapping conflict']},
+  {id:'REQ-039',type:'Add HCP',status:'Approved',requester:'Rep 17 (E017)',requesterRole:'OAM',district:'SOUTHEAST',
+   sourceTerr:null,targetTerr:'FT LAUDERDALE, FL',hcpId:'HCP00009991',hcpCity:'Pompano Beach, FL',hcpTier:'Tier 2',hcpI3:0,
+   reason:'New account',comments:'New practice opened in Pompano Beach. Should be added to Ft Lauderdale territory.',
+   ts:'Apr 12 2026, 11:30',updatedTs:'Apr 12 2026, 14:45',
+   thread:[
+     {user:'Rep 17 (E017)',role:'OAM',time:'Apr 12, 11:30',text:'New gastroenterology practice opened at Pompano Beach. Recommending Tier 2 classification based on estimated patient volume.',av:'av-oam',initials:'R1'},
+     {user:'District Manager 2 (E052)',role:'DM',time:'Apr 12, 13:00',text:'Verified practice registration. Approved for DM level — forwarding to NSD.',av:'av-dm',initials:'DM'},
+     {user:'National Sales Director (E056)',role:'NSD',time:'Apr 12, 14:45',text:'Approved. HCP00009991 added to Ft Lauderdale alignment effective immediately.',av:'av-nsd',initials:'NS'}
+   ],
+   conflicts:[]},
+  {id:'REQ-038',type:'Reassign OAM',status:'Pending',requester:'District Manager 2 (E052)',requesterRole:'DM',district:'SOUTH CENTRAL',
+   sourceTerr:'DALLAS, TX',targetTerr:'DALLAS, TX',hcpId:null,newRep:'Rep 14 (E014)',
+   reason:'Workload imbalance',comments:'Dallas territory has been vacant (E048) for 2 months. Requesting reassignment of Rep 14 pending new hire.',
+   ts:'Apr 11 2026, 14:20',updatedTs:'Apr 11 2026, 14:20',
+   thread:[{user:'District Manager 2 (E052)',role:'DM',time:'Apr 11, 14:20',text:'Dallas has been unmanned for 8 weeks. 180 HCPs with no coverage. Requesting emergency coverage from Rep 14 (Fort Worth).',av:'av-dm',initials:'DM'}],
+   conflicts:['DALLAS, TX has been vacant for 60+ days — 180 HCPs currently uncovered','Reassigning Rep 14 from Fort Worth may strain that territory (95 HCPs)']},
+  {id:'REQ-037',type:'Remove HCP',status:'Rejected',requester:'Rep 20 (E020)',requesterRole:'OAM',district:'SOUTHEAST',
+   sourceTerr:'JACKSONVILLE, FL',targetTerr:null,hcpId:'HCP00000842',hcpCity:'Jesup, GA',hcpTier:'Tier 4',hcpI3:36.2,
+   reason:'Other',comments:'HCP00000842 has not engaged in 18 months. Requesting removal from Jacksonville territory.',
+   ts:'Apr 9 2026, 10:05',updatedTs:'Apr 10 2026, 09:00',
+   thread:[
+     {user:'Rep 20 (E020)',role:'OAM',time:'Apr 9, 10:05',text:'HCP00000842 in Jesup GA has been unresponsive for 18 months. Recommend removal.',av:'av-oam',initials:'R2'},
+     {user:'National Sales Director (E056)',role:'NSD',time:'Apr 10, 09:00',text:'Rejected — HCP removal requires compliance review. Please submit through formal medical affairs process.',av:'av-nsd',initials:'NS'}
+   ],
+   conflicts:[]},
+  {id:'REQ-036',type:'Change HCP territory',status:'Approved',requester:'Rep 13 (E013)',requesterRole:'OAM',district:'NORTHEAST',
+   sourceTerr:'COLUMBUS, OH',targetTerr:'CINCINNATI, OH',hcpId:'HCP00001045',hcpCity:'Columbus, OH',hcpTier:'Tier 1',hcpI3:45.8,
+   reason:'Sales opportunity',comments:'HCP00001045 has stronger relationship with Cincinnati rep. Moving will improve engagement.',
+   ts:'Apr 5 2026, 08:30',updatedTs:'Apr 7 2026, 16:00',
+   thread:[
+     {user:'Rep 13 (E013)',role:'OAM',time:'Apr 5, 08:30',text:'HCP00001045 is geographically on the Columbus/Cincinnati border. Better served by Cincinnati rep.',av:'av-oam',initials:'R1'},
+     {user:'District Manager 1 (E051)',role:'DM',time:'Apr 6, 10:00',text:'Reviewed. The geographic argument is solid. Forwarding to NSD.',av:'av-dm',initials:'DM'},
+     {user:'National Sales Director (E056)',role:'NSD',time:'Apr 7, 16:00',text:'Approved. ZTT updated for HCP00001045.',av:'av-nsd',initials:'NS'}
+   ],
+   conflicts:[]}
+];
+
+const ROLES={
+  nsd:{name:'National Sales Director',id:'E056',initials:'NS',avClass:'av-nsd',label:'NSD',sub:'NSD — NATION',dot:'nsd'},
+  dm:{name:'District Manager 1',id:'E051',initials:'DM',avClass:'av-dm',label:'DM',sub:'DM — NORTHEAST',dot:'dm'},
+  oam:{name:'Rep 1',id:'E001',initials:'R1',avClass:'av-oam',label:'OAM',sub:'OAM — ALBANY, NY',dot:'oam'}
+};
+
+let currentRole='nsd', statusFilter='all', selectedReqId=null, showingNew=false;
+
+function cycleRole(){
+  const o=['nsd','dm','oam'];
+  currentRole=o[(o.indexOf(currentRole)+1)%3];
+  applyRole();
+}
+
+function applyRole(){
+  const r=ROLES[currentRole];
+  document.getElementById('role-dot').className='role-dot '+r.dot;
+  document.getElementById('role-lbl').textContent=r.label;
+  document.getElementById('sb-av').textContent=r.initials;
+  document.getElementById('sb-av').className='sb-av '+r.avClass;
+  document.getElementById('sb-name').textContent=r.name+' ('+r.id+')';
+  document.getElementById('sb-sub').textContent=r.sub;
+  document.getElementById('admin-nav').style.display=currentRole==='nsd'?'':'none';
+  renderMetrics(); renderList();
+  if(selectedReqId) showDetail(selectedReqId);
+}
+
+function getVisibleRequests(){
+  const role=currentRole;
+  return REQUESTS.filter(r=>{
+    if(role==='oam') return r.requester.includes('E001')||r.requester.includes('Rep 1 ');
+    if(role==='dm') return r.district==='NORTHEAST'||r.district==='SOUTH CENTRAL';
+    return true;
+  });
+}
+
+function filterStatus(s,btn){
+  statusFilter=s;
+  document.querySelectorAll('.stab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderList();
+}
+
+function renderMetrics(){
+  const reqs=getVisibleRequests();
+  const pending=reqs.filter(r=>r.status==='Pending').length;
+  const dmReview=reqs.filter(r=>r.status==='DM Review').length;
+  const approved=reqs.filter(r=>r.status==='Approved').length;
+  const conflicts=reqs.filter(r=>r.conflicts&&r.conflicts.length>0).length;
+  document.getElementById('metrics-row').innerHTML=`
+    <div class="mc"><div class="mc-lbl">Total requests</div><div class="mc-val">${reqs.length}</div><div class="mc-sub">In your scope</div></div>
+    <div class="mc"><div class="mc-lbl">Pending action</div><div class="mc-val" style="color:var(--orange)">${pending+dmReview}</div><div class="mc-sub warn">Need review</div></div>
+    <div class="mc"><div class="mc-lbl">Approved</div><div class="mc-val" style="color:var(--green-text)">${approved}</div><div class="mc-sub up">This month</div></div>
+    <div class="mc"><div class="mc-lbl">With conflicts</div><div class="mc-val" style="color:var(--red)">${conflicts}</div><div class="mc-sub danger">Warning flags</div></div>`;
+  const all=getVisibleRequests();
+  document.getElementById('sc-all').textContent=all.length;
+  document.getElementById('sc-pending').textContent=all.filter(r=>r.status==='Pending').length;
+  document.getElementById('sc-dm').textContent=all.filter(r=>r.status==='DM Review').length;
+  document.getElementById('sc-approved').textContent=all.filter(r=>r.status==='Approved').length;
+  document.getElementById('sc-rejected').textContent=all.filter(r=>r.status==='Rejected').length;
+  document.getElementById('nav-badge').textContent=pending+dmReview;
+}
+
+function renderList(){
+  const q=(document.getElementById('req-search').value||'').toLowerCase();
+  const typeF=document.getElementById('type-filter').value;
+  let reqs=getVisibleRequests().filter(r=>{
+    if(statusFilter!=='all'&&r.status!==statusFilter) return false;
+    if(typeF&&r.type!==typeF) return false;
+    if(q&&!r.id.toLowerCase().includes(q)&&!r.type.toLowerCase().includes(q)&&!r.requester.toLowerCase().includes(q)&&!(r.hcpId||'').toLowerCase().includes(q)&&!(r.sourceTerr||'').toLowerCase().includes(q)) return false;
+    return true;
+  });
+  if(!reqs.length){
+    document.getElementById('req-list').innerHTML=`<div style="padding:32px 16px;text-align:center;color:var(--text3);font-size:12px">No requests match your filters</div>`;
+    return;
+  }
+  document.getElementById('req-list').innerHTML=reqs.map(r=>`
+    <div class="req-card${r.id===selectedReqId?' active':''}" onclick="showDetail('${r.id}')">
+      <div class="req-card-top">
+        <span class="req-id">${r.id}</span>
+        <span class="req-type-tag ${TYPE_COLORS[r.type]||'rt-change'}">${r.type}</span>
+      </div>
+      <div class="req-card-title">${getReqTitle(r)}</div>
+      <div class="req-card-meta">
+        <span class="status-pip ${STATUS_PIP[r.status]}"></span>
+        <span>${r.status}</span>
+        <span class="req-card-meta-dot"></span>
+        <span>${r.requester.split(' (')[0]}</span>
+        <span class="req-card-meta-dot"></span>
+        <span>${r.ts.split(',')[0]}</span>
+        ${r.conflicts&&r.conflicts.length?`<span class="req-card-meta-dot"></span><span style="color:var(--orange-text)">⚠ conflict</span>`:''}
+      </div>
+    </div>`).join('');
+}
+
+function getReqTitle(r){
+  if(r.type==='Change HCP territory') return `${r.hcpId} — ${r.sourceTerr} → ${r.targetTerr}`;
+  if(r.type==='Add HCP') return `${r.hcpId} → ${r.targetTerr}`;
+  if(r.type==='Remove HCP') return `Remove ${r.hcpId} from ${r.sourceTerr}`;
+  if(r.type==='Reassign ZIP') return `ZIP ${r.zip} (${r.zipCity}) → ${r.targetTerr}`;
+  if(r.type==='Reassign OAM') return `${r.sourceTerr} — assign ${r.newRep}`;
+  return r.type;
+}
+
+function computeSim(r){
+  const src=TERRITORIES[r.sourceTerr]||null;
+  const tgt=TERRITORIES[r.targetTerr]||null;
+  if(!src&&!tgt) return null;
+  const hcpVal=r.hcpI3||0;
+  const hcpI1=r.hcpI1||hcpVal*0.82;
+  const hcpI2=r.hcpI2||hcpVal*0.91;
+  const hcpI4=r.hcpI4||hcpVal*0.97;
+  if(r.type==='Change HCP territory'&&src&&tgt){
+    return{
+      src:{before:{hcos:src.hco_count,zips:src.zip_count,i1:src.idx1,i2:src.idx2,i3:src.idx3,i4:src.idx4},
+           after:{hcos:src.hco_count-1,zips:src.zip_count,i1:+(src.idx1-hcpI1).toFixed(1),i2:+(src.idx2-hcpI2).toFixed(1),i3:+(src.idx3-hcpVal).toFixed(1),i4:+(src.idx4-hcpI4).toFixed(1)}},
+      tgt:{before:{hcos:tgt.hco_count,zips:tgt.zip_count,i1:tgt.idx1,i2:tgt.idx2,i3:tgt.idx3,i4:tgt.idx4},
+           after:{hcos:tgt.hco_count+1,zips:tgt.zip_count,i1:+(tgt.idx1+hcpI1).toFixed(1),i2:+(tgt.idx2+hcpI2).toFixed(1),i3:+(tgt.idx3+hcpVal).toFixed(1),i4:+(tgt.idx4+hcpI4).toFixed(1)}}
+    };
+  }
+  if(r.type==='Add HCP'&&tgt){
+    return{tgt:{before:{hcos:tgt.hco_count,i1:tgt.idx1,i2:tgt.idx2,i3:tgt.idx3,i4:tgt.idx4},
+                after:{hcos:tgt.hco_count+1,i1:+(tgt.idx1+hcpI1).toFixed(1),i2:+(tgt.idx2+hcpI2).toFixed(1),i3:+(tgt.idx3+hcpVal).toFixed(1),i4:+(tgt.idx4+hcpI4).toFixed(1)}}};
+  }
+  if(r.type==='Remove HCP'&&src){
+    return{src:{before:{hcos:src.hco_count,i1:src.idx1,i2:src.idx2,i3:src.idx3,i4:src.idx4},
+                after:{hcos:src.hco_count-1,i1:+(src.idx1-hcpI1).toFixed(1),i2:+(src.idx2-hcpI2).toFixed(1),i3:+(src.idx3-hcpVal).toFixed(1),i4:+(src.idx4-hcpI4).toFixed(1)}}};
+  }
+  return null;
+}
+
+function deltaClass(d){return d>0?'delta-up':d<0?'delta-down':'delta-neutral';}
+function deltaStr(d){return(d>0?'+':'')+d;}
+
+function simTableHTML(label,b,a,color){
+  const maxIdx=1500;
+  const rows=[
+    {metric:'HCPs',before:b.hcos,after:a.hcos},
+    {metric:'Index 1',before:b.i1,after:a.i1},
+    {metric:'Index 2',before:b.i2,after:a.i2},
+    {metric:'Index 3',before:b.i3,after:a.i3},
+    {metric:'Index 4',before:b.i4,after:a.i4}
+  ];
+  return`<div style="margin-bottom:14px">
+    <div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:6px;display:flex;align-items:center;gap:6px">
+      <span class="t-dot" style="background:${color}"></span>${label}
+    </div>
+    <table class="sim-table" style="width:100%">
+      <thead><tr><th class="metric-col">Metric</th><th>Before</th><th>After</th><th>Delta</th></tr></thead>
+      <tbody>${rows.map(row=>{
+        const d=typeof row.before==='number'?+(row.after-row.before).toFixed(1):0;
+        const pct=typeof row.before==='number'?Math.min(Math.round(row.after/maxIdx*100),100):0;
+        return`<tr>
+          <td class="metric-col">${row.metric}</td>
+          <td class="before-col">${row.before}</td>
+          <td class="after-col"><div class="mini-bar-wrap"><div class="mini-bar-bg"><div class="mini-bar-fill" style="width:${pct}%;background:${color}"></div></div>${row.after}</div></td>
+          <td class="delta-col ${deltaClass(d)}">${typeof d==='number'&&d!==0?deltaStr(d):'—'}</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>
+  </div>`;
+}
+
+function workflowStepNum(r){
+  if(r.status==='Pending') return 1;
+  if(r.status==='DM Review') return 2;
+  if(r.status==='Approved') return 3;
+  if(r.status==='Rejected') return -1;
+  return 0;
+}
+
+function workflowHTML(r){
+  const step=workflowStepNum(r);
+  const rejected=r.status==='Rejected';
+  const steps=[
+    {label:'Submitted',sublabel:r.requesterRole},
+    {label:'DM review',sublabel:'District Manager'},
+    {label:'NSD approval',sublabel:'Final decision'}
+  ];
+  return`<div class="workflow-strip">
+    ${steps.map((s,i)=>{
+      let cls='wf-step';
+      if(rejected&&i===2) cls+=' rejected-step';
+      else if(i<step-1) cls+=' done';
+      else if(i===step-1) cls+=' active-step';
+      return`<div class="${cls}">
+        <div class="wf-circle">${rejected&&i===2?'✕':i<step-1?'✓':(i+1)}</div>
+        <div class="wf-label">${s.label}</div>
+        <div style="font-size:9px;color:var(--text4);text-align:center">${s.sublabel}</div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+function showDetail(id){
+  selectedReqId=id;
+  showingNew=false;
+  const r=REQUESTS.find(x=>x.id===id);
+  if(!r) return;
+  document.getElementById('detail-empty').style.display='none';
+  document.getElementById('new-req-view').style.display='none';
+  const dv=document.getElementById('detail-view');
+  dv.style.display='flex';
+
+  const src=TERRITORIES[r.sourceTerr]||null;
+  const tgt=TERRITORIES[r.targetTerr]||null;
+  const sim=computeSim(r);
+
+  // Build detail scroll
+  const av_classes={'OAM':'av-oam','DM':'av-dm','NSD':'av-nsd'};
+  document.getElementById('detail-scroll').innerHTML=`
+    <div class="detail-inner">
+      <!-- HEADER -->
+      <div class="detail-head">
+        <div class="detail-icon" style="background:${TYPE_COLORS[r.type]?'var(--blue-bg)':'var(--surface2)'}">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="var(--blue)" stroke-width="1.5"/><path d="M8 12h8M13 9l3 3-3 3" stroke="var(--blue)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div>
+          <div class="detail-title">${getReqTitle(r)}</div>
+          <div class="detail-sub">
+            <span style="font-family:monospace;font-size:11px;color:var(--text4)">${r.id}</span>
+            <span class="status-badge ${STATUS_COLORS[r.status]}">${r.status}</span>
+            <span class="req-type-tag ${TYPE_COLORS[r.type]||'rt-change'}">${r.type}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- WORKFLOW -->
+      ${workflowHTML(r)}
+
+      <!-- METADATA -->
+      <div class="two-col">
+        <div class="card">
+          <div class="card-title">Request details</div>
+          <div class="info-row"><span class="info-k">Requester</span><span class="info-v">${r.requester}</span></div>
+          <div class="info-row"><span class="info-k">Role</span><span class="info-v">${r.requesterRole}</span></div>
+          <div class="info-row"><span class="info-k">District</span><span class="info-v">${r.district}</span></div>
+          <div class="info-row"><span class="info-k">Submitted</span><span class="info-v">${r.ts}</span></div>
+          <div class="info-row"><span class="info-k">Last update</span><span class="info-v">${r.updatedTs}</span></div>
+          <div class="info-row"><span class="info-k">Reason</span><span class="info-v">${r.reason}</span></div>
+        </div>
+        <div class="card">
+          <div class="card-title">HCP / ZIP details</div>
+          ${r.hcpId?`
+          <div class="info-row"><span class="info-k">HCP ID</span><span class="info-v" style="font-family:monospace;font-size:11px">${r.hcpId}</span></div>
+          <div class="info-row"><span class="info-k">Location</span><span class="info-v">${r.hcpCity||'—'}</span></div>
+          <div class="info-row"><span class="info-k">Tier</span><span class="info-v"><span class="badge" style="background:var(--blue-bg);color:var(--blue-text)">${r.hcpTier||'—'}</span></span></div>
+          <div class="info-row"><span class="info-k">Index 3</span><span class="info-v">${r.hcpI3||'—'}</span></div>
+          `:''}
+          ${r.zip?`
+          <div class="info-row"><span class="info-k">ZIP code</span><span class="info-v" style="font-family:monospace">${r.zip}</span></div>
+          <div class="info-row"><span class="info-k">ZIP city</span><span class="info-v">${r.zipCity}</span></div>
+          `:''}
+          ${r.sourceTerr?`<div class="info-row"><span class="info-k">From territory</span><span class="info-v">${r.sourceTerr}</span></div>`:''}
+          ${r.targetTerr?`<div class="info-row"><span class="info-k">To territory</span><span class="info-v">${r.targetTerr}</span></div>`:''}
+          ${r.newRep?`<div class="info-row"><span class="info-k">New rep</span><span class="info-v">${r.newRep}</span></div>`:''}
+          <div class="info-row"><span class="info-k">Comments</span><span class="info-v" style="font-size:11px;text-align:right;white-space:normal;line-height:1.4">${r.comments}</span></div>
+        </div>
+      </div>
+
+      <!-- BEFORE / AFTER TERRITORIES -->
+      ${(src||tgt)?`
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-title">Territory state</div>
+        <div class="ba-row">
+          ${src?`<div class="ba-box">
+            <div class="ba-label before">Source territory (before)</div>
+            <div class="ba-terr"><span class="t-dot" style="background:${src.color}"></span>${src.name}</div>
+            <div class="ba-rep">${src.rep_name} · ${src.district}</div>
+            <div style="margin-top:8px;font-size:10px;color:var(--text3)">HCPs: ${src.hco_count} · ZIPs: ${src.zip_count.toLocaleString()} · Idx3: ${src.idx3}</div>
+          </div>`:`<div></div>`}
+          <div class="ba-arrow">→</div>
+          ${tgt?`<div class="ba-box">
+            <div class="ba-label after">Target territory (after)</div>
+            <div class="ba-terr"><span class="t-dot" style="background:${tgt.color}"></span>${tgt.name}</div>
+            <div class="ba-rep">${tgt.rep_name} · ${tgt.district}</div>
+            <div style="margin-top:8px;font-size:10px;color:var(--text3)">HCPs: ${tgt.hco_count} · ZIPs: ${tgt.zip_count.toLocaleString()} · Idx3: ${tgt.idx3}</div>
+          </div>`:`<div></div>`}
+        </div>
+      </div>`:''}
+
+      <!-- SIMULATION -->
+      ${sim?`<div class="sim-card">
+        <div class="sim-title">
+          Impact simulation — all 4 indices
+          <span style="font-size:10px;font-weight:400;color:var(--text4)">Pre-approval preview</span>
+        </div>
+        ${sim.src?simTableHTML('Source: '+(r.sourceTerr||''),sim.src.before,sim.src.after,(src&&src.color)||'#888'):''}
+        ${sim.tgt?simTableHTML('Target: '+(r.targetTerr||''),sim.tgt.before,sim.tgt.after,(tgt&&tgt.color)||'#888'):''}
+        <div style="font-size:10px;color:var(--text4);margin-top:4px">Simulation uses per-HCP index contribution estimates based on territory averages.</div>
+      </div>`:''}
+
+      <!-- CONFLICTS -->
+      ${r.conflicts&&r.conflicts.length?`
+      <div class="conflict-card">
+        <div class="conflict-title">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 2L15 14H1L8 2z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M8 7v3M8 11.5v.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+          Conflict warnings (${r.conflicts.length}) — not blocking
+        </div>
+        ${r.conflicts.map(c=>`<div class="conflict-item">
+          <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="5" stroke="currentColor" stroke-width="1.2"/><path d="M8 6v3M8 10.5v.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+          ${c}
+        </div>`).join('')}
+      </div>`:''}
+
+      <!-- COMMENT THREAD -->
+      <div class="card" style="margin-bottom:0">
+        <div class="card-title">Discussion thread</div>
+        <div class="comment-thread">
+          ${r.thread.map(c=>`<div class="comment">
+            <div class="sb-av ${c.av}" style="width:28px;height:28px;font-size:10px">${c.initials}</div>
+            <div class="comment-body">
+              <div class="comment-header">
+                <span class="comment-name">${c.user}</span>
+                <span style="font-size:10px;padding:1px 6px;border-radius:8px;background:var(--surface2);color:var(--text3)">${c.role}</span>
+                <span class="comment-time">${c.time}</span>
+              </div>
+              <div class="comment-text">${c.text}</div>
+            </div>
+          </div>`).join('')}
+        </div>
+        ${r.status!=='Approved'&&r.status!=='Rejected'?`
+        <div class="comment-input-row">
+          <textarea class="comment-input" placeholder="Add a comment..." id="comment-input-${r.id}"></textarea>
+          <button class="comment-send-btn" onclick="addComment('${r.id}')">Send</button>
+        </div>`:'<div style="font-size:11px;color:var(--text4);text-align:center;padding:8px 0">Request closed — no further comments</div>'}
+      </div>
+    </div>`;
+
+  // Build action footer
+  buildActionFooter(r);
+  renderList();
+}
+
+function buildActionFooter(r){
+  const footer=document.getElementById('action-footer');
+  const canApprove=(currentRole==='nsd'&&(r.status==='Pending'||r.status==='DM Review'))||(currentRole==='dm'&&r.status==='Pending');
+  const canReject=(currentRole==='nsd'&&(r.status==='Pending'||r.status==='DM Review'))||(currentRole==='dm'&&r.status==='Pending');
+  const isActive=r.status!=='Approved'&&r.status!=='Rejected';
+
+  if(!isActive){
+    footer.innerHTML=`<span class="action-note">This request is ${r.status.toLowerCase()} — no further action required.</span>`;
+    return;
+  }
+
+  let html='';
+  if(currentRole==='oam'){
+    html=`<span class="action-note">Submitted — awaiting DM/NSD review. You can add comments above.</span>`;
+  } else if(currentRole==='dm'&&r.status==='Pending'){
+    html=`<span class="action-note">As DM you can approve to escalate to NSD, or reject outright.</span>
+      <button class="act-btn btn-approve" onclick="approveReq('${r.id}','dm')"><svg viewBox="0 0 16 16" fill="none"><path d="M3 8l4 4 6-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Escalate to NSD</button>
+      <button class="act-btn btn-reject" onclick="rejectReq('${r.id}')"><svg viewBox="0 0 16 16" fill="none"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Reject</button>`;
+  } else if(currentRole==='nsd'&&(r.status==='Pending'||r.status==='DM Review')){
+    html=`<span class="action-note">Final approval — this change will be applied to the live alignment upon approval.</span>
+      <button class="act-btn btn-approve" onclick="approveReq('${r.id}','nsd')"><svg viewBox="0 0 16 16" fill="none"><path d="M3 8l4 4 6-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Approve &amp; apply</button>
+      <button class="act-btn btn-reject" onclick="rejectReq('${r.id}')"><svg viewBox="0 0 16 16" fill="none"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Reject</button>
+      <button class="act-btn btn-secondary" onclick="addComment('${r.id}')"><svg viewBox="0 0 16 16" fill="none"><path d="M2 2h12v9H9l-3 3v-3H2z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>Request info</button>`;
+  }
+  footer.innerHTML=html;
+}
+
+function approveReq(id,by){
+  const r=REQUESTS.find(x=>x.id===id);
+  if(!r) return;
+  if(by==='dm'){
+    r.status='DM Review';
+    r.updatedTs='Now';
+    r.thread.push({user:ROLES.dm.name+' ('+ROLES.dm.id+')',role:'DM',time:'Now',text:'Reviewed and escalating to NSD for final approval.',av:'av-dm',initials:'DM'});
+    showToast(id+' escalated to NSD review','success');
+  } else {
+    r.status='Approved';
+    r.updatedTs='Now';
+    r.thread.push({user:ROLES.nsd.name+' ('+ROLES.nsd.id+')',role:'NSD',time:'Now',text:'Approved. Alignment updated in ZTT effective immediately.',av:'av-nsd',initials:'NS'});
+    applyApproval(r);
+    showToast(id+' approved — alignment updated','success');
+  }
+  renderMetrics(); renderList(); showDetail(id);
+}
+
+function rejectReq(id){
+  const r=REQUESTS.find(x=>x.id===id);
+  if(!r) return;
+  r.status='Rejected';
+  r.updatedTs='Now';
+  const u=ROLES[currentRole];
+  r.thread.push({user:u.name+' ('+u.id+')',role:u.label,time:'Now',text:'Request rejected. See comments for details.',av:'av-'+currentRole,initials:u.initials});
+  showToast(id+' rejected','');
+  renderMetrics(); renderList(); showDetail(id);
+}
+
+function applyApproval(r){
+  if((r.type==='Change HCP territory'||r.type==='Reassign ZIP')&&r.sourceTerr&&r.targetTerr){
+    const src=TERRITORIES[r.sourceTerr], tgt=TERRITORIES[r.targetTerr];
+    if(src&&tgt){
+      src.hco_count=Math.max(0,src.hco_count-1);
+      src.idx3=+(src.idx3-(r.hcpI3||0)).toFixed(1);
+      tgt.hco_count=tgt.hco_count+1;
+      tgt.idx3=+(tgt.idx3+(r.hcpI3||0)).toFixed(1);
+    }
+  }
+  if(r.type==='Add HCP'&&r.targetTerr){
+    const tgt=TERRITORIES[r.targetTerr];
+    if(tgt) tgt.hco_count=tgt.hco_count+1;
+  }
+}
+
+function addComment(id){
+  const inp=document.getElementById('comment-input-'+id);
+  const text=inp?inp.value.trim():'';
+  if(!text){showToast('Please enter a comment first','');return;}
+  const r=REQUESTS.find(x=>x.id===id);
+  const u=ROLES[currentRole];
+  r.thread.push({user:u.name+' ('+u.id+')',role:u.label,time:'Now',text,av:'av-'+currentRole,initials:u.initials});
+  showToast('Comment added','success');
+  showDetail(id);
+}
+
+function showNewRequest(){
+  selectedReqId=null;
+  showingNew=true;
+  document.getElementById('detail-empty').style.display='none';
+  document.getElementById('detail-view').style.display='none';
+  const pane=document.getElementById('new-req-view');
+  pane.style.display='block';
+
+  const terrOptions=Object.values(TERRITORIES).map(t=>`<option>${t.name}</option>`).join('');
+
+  pane.innerHTML=`<div class="form-pane">
+    <div class="form-title">Submit change request</div>
+    <div class="form-section">
+      <div class="form-section-title">Request type</div>
+      <div class="field">
+        <label>Type</label>
+        <select id="f-type" onchange="updateFormPreview()">
+          <option>Change HCP territory</option>
+          <option>Add HCP</option>
+          <option>Remove HCP</option>
+          <option>Reassign ZIP</option>
+          <option>Reassign OAM</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title">Subject</div>
+      <div class="field-row">
+        <div class="field"><label>HCP ID / ZIP code</label><input id="f-subject" placeholder="e.g. HCP00001485 or 89511" oninput="updateFormPreview()"></div>
+        <div class="field"><label>HCP tier</label><select id="f-tier"><option>Tier 1</option><option>Tier 2</option><option selected>Tier 3</option><option>Tier 4</option></select></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Source territory</label><select id="f-src" onchange="updateFormPreview()"><option value="">— none —</option>${terrOptions}</select></div>
+        <div class="field"><label>Target territory</label><select id="f-tgt" onchange="updateFormPreview()"><option value="">— none —</option>${terrOptions}</select></div>
+      </div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title">Simulation preview</div>
+      <div id="f-sim-preview" class="sim-preview">
+        <div class="sim-preview-title">Select source and target territories to see impact</div>
+      </div>
+      <div class="conflict-preview" id="f-conflict-preview">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 2L15 14H1L8 2z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M8 7v3M8 11.5v.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        <span id="f-conflict-text"></span>
+      </div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title">Justification</div>
+      <div class="field">
+        <label>Reason tag</label>
+        <select id="f-reason"><option>Workload imbalance</option><option>New account</option><option>Account overlap</option><option>Sales opportunity</option><option>Other</option></select>
+      </div>
+      <div class="field">
+        <label>Comments</label>
+        <textarea id="f-comments" placeholder="Provide context for the approver — include any relevant data points or observations..."></textarea>
+      </div>
+    </div>
+    <div class="form-footer">
+      <button class="btn-cancel-f" onclick="cancelNew()">Cancel</button>
+      <button class="btn-submit-f" onclick="submitNew()">Submit request</button>
+    </div>
+  </div>`;
+  renderList();
+}
+
+function updateFormPreview(){
+  const src=document.getElementById('f-src').value;
+  const tgt=document.getElementById('f-tgt').value;
+  const prev=document.getElementById('f-sim-preview');
+  const conflictBox=document.getElementById('f-conflict-preview');
+  const conflictText=document.getElementById('f-conflict-text');
+
+  if(!src&&!tgt){
+    prev.innerHTML='<div class="sim-preview-title">Select source and target territories to see impact</div>';
+    conflictBox.style.display='none';
+    return;
+  }
+
+  const srcT=TERRITORIES[src], tgtT=TERRITORIES[tgt];
+  conflictBox.style.display='none';
+
+  // conflict checks
+  const conflicts=[];
+  if(src===tgt) conflicts.push('Source and target territories are the same.');
+  const subj=document.getElementById('f-subject').value;
+  if(subj==='89511') conflicts.push('ZIP 89511 is already flagged as dual-mapped — this will create a new conflict.');
+  if(srcT&&srcT.hco_count<50) conflicts.push(`Source territory ${src} has unusually low HCP count (${srcT.hco_count}) — removing may worsen coverage.`);
+
+  if(conflicts.length){
+    conflictBox.style.display='flex';
+    conflictText.textContent=conflicts.join(' ');
+  }
+
+  let html='<div class="sim-preview-title">Estimated impact</div>';
+  if(srcT){
+    html+=`<div class="sim-preview-row"><span style="color:var(--text3)">Source ${src} HCPs</span><span>${srcT.hco_count} → <strong>${srcT.hco_count-1}</strong></span></div>`;
+    html+=`<div class="sim-preview-row"><span style="color:var(--text3)">Source Index 3</span><span>${srcT.idx3} → <strong style="color:var(--red-text)">~${+(srcT.idx3*0.98).toFixed(1)}</strong></span></div>`;
+  }
+  if(tgtT){
+    html+=`<div class="sim-preview-row"><span style="color:var(--text3)">Target ${tgt} HCPs</span><span>${tgtT.hco_count} → <strong>${tgtT.hco_count+1}</strong></span></div>`;
+    html+=`<div class="sim-preview-row"><span style="color:var(--text3)">Target Index 3</span><span>${tgtT.idx3} → <strong style="color:var(--green-text)">~${+(tgtT.idx3*1.02).toFixed(1)}</strong></span></div>`;
+  }
+  html+=`<div style="font-size:9px;color:var(--text4);margin-top:6px">Full simulation shown after submission</div>`;
+  prev.innerHTML=html;
+}
+
+function cancelNew(){
+  showingNew=false;
+  document.getElementById('new-req-view').style.display='none';
+  document.getElementById('detail-empty').style.display='flex';
+}
+
+function submitNew(){
+  const type=document.getElementById('f-type').value;
+  const subject=document.getElementById('f-subject').value;
+  const src=document.getElementById('f-src').value;
+  const tgt=document.getElementById('f-tgt').value;
+  const reason=document.getElementById('f-reason').value;
+  const comments=document.getElementById('f-comments').value;
+  const u=ROLES[currentRole];
+
+  if(!subject&&type!=='Reassign OAM'){showToast('Please enter an HCP ID or ZIP code','');return;}
+
+  const newReq={
+    id:newId(),type,status:'Pending',
+    requester:u.name+' ('+u.id+')',requesterRole:u.label,
+    district:currentRole==='dm'?'NORTHEAST':currentRole==='oam'?'NORTHEAST':'NORTHEAST',
+    sourceTerr:src||null,targetTerr:tgt||null,
+    hcpId:type.includes('HCP')?subject:null,
+    zip:type==='Reassign ZIP'?subject:null,
+    zipCity:type==='Reassign ZIP'?'(from ZTT)':null,
+    hcpCity:'',hcpTier:document.getElementById('f-tier').value,hcpI3:0,
+    reason,comments:comments||'No additional comments.',
+    ts:new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+', now',
+    updatedTs:'Just now',
+    thread:[{user:u.name+' ('+u.id+')',role:u.label,time:'Now',text:comments||'Request submitted.',av:'av-'+currentRole,initials:u.initials}],
+    conflicts:[]
+  };
+  REQUESTS.unshift(newReq);
+  showToast(newReq.id+' submitted successfully','success');
+  showingNew=false;
+  document.getElementById('new-req-view').style.display='none';
+  renderMetrics(); renderList();
+  showDetail(newReq.id);
+}
+
+function showToast(msg,type){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast'+(type?' '+type:'');
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3200);
+}
+
+applyRole();
+if(REQUESTS.length) showDetail(REQUESTS[0].id);
+</script>
+</body>
+</html>

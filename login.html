@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TerritoryAlign — Sign in</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f7;min-height:100vh;display:flex;align-items:center;justify-content:center}
+.card{background:#fff;border-radius:16px;border:1px solid #e0e0e0;padding:2.25rem;width:360px}
+.logo{display:flex;align-items:center;gap:10px;margin-bottom:1.75rem}
+.logo-icon{width:38px;height:38px;background:#e8f0fe;border-radius:9px;display:flex;align-items:center;justify-content:center}
+.logo-icon svg{width:22px;height:22px}
+.logo-title{font-size:17px;font-weight:600;color:#1d1d1f}
+.logo-sub{font-size:11px;color:#888}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.3px;margin-bottom:5px}
+.field input{width:100%;padding:9px 12px;font-size:13px;font-family:inherit;background:#f5f5f7;border:1px solid #e0e0e0;border-radius:8px;color:#1d1d1f;outline:none;transition:border-color .15s}
+.field input:focus{border-color:#0071e3;background:#fff}
+.btn{width:100%;padding:10px;font-size:13px;font-weight:600;font-family:inherit;background:#0071e3;color:#fff;border:none;border-radius:8px;cursor:pointer;margin-top:4px;transition:background .15s}
+.btn:hover{background:#005cc5}
+.btn:disabled{background:#aaa;cursor:not-allowed}
+.error{background:#fde8e8;color:#c0392b;border-radius:8px;padding:9px 12px;font-size:12px;margin-bottom:12px;display:none}
+.divider{border-top:1px solid #f0f0f0;margin:16px 0;position:relative}
+.divider span{position:absolute;top:-8px;left:50%;transform:translateX(-50%);background:#fff;padding:0 8px;font-size:10px;color:#aaa;text-transform:uppercase;letter-spacing:.4px}
+.demo-title{font-size:10px;color:#aaa;text-transform:uppercase;letter-spacing:.4px;margin-bottom:7px;font-weight:600}
+.demo-btn{display:flex;align-items:center;justify-content:space-between;width:100%;padding:9px 12px;font-size:12px;font-family:inherit;background:#f5f5f7;border:1px solid #e0e0e0;border-radius:8px;cursor:pointer;color:#1d1d1f;margin-bottom:6px;transition:all .15s}
+.demo-btn:last-child{margin-bottom:0}
+.demo-btn:hover{border-color:#0071e3;background:#e8f0fe}
+.role-chip{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600}
+.chip-nsd{background:#fde8e8;color:#c0392b}
+.chip-dm{background:#fff3e0;color:#8a5000}
+.chip-oam{background:#e8f8f0;color:#1a7a3c}
+.loading{display:none;text-align:center;padding:8px;font-size:12px;color:#888}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 22 22" fill="none">
+        <circle cx="11" cy="11" r="8" stroke="#0071e3" stroke-width="1.6"/>
+        <path d="M6 11Q8 8.5 11 11Q14 13.5 16 11" stroke="#0071e3" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+        <circle cx="11" cy="11" r="2" fill="#0071e3"/>
+      </svg>
+    </div>
+    <div>
+      <div class="logo-title">TerritoryAlign</div>
+      <div class="logo-sub">Pharma Commercial Platform</div>
+    </div>
+  </div>
+
+  <div class="error" id="error-msg"></div>
+
+  <div class="field">
+    <label>Personnel ID</label>
+    <input type="text" id="pid" placeholder="e.g. E056" autocomplete="username" autofocus>
+  </div>
+  <div class="field">
+    <label>Password</label>
+    <input type="password" id="pwd" placeholder="••••••••••••" autocomplete="current-password">
+  </div>
+  <button class="btn" id="login-btn" onclick="doLogin()">Sign in</button>
+  <div class="loading" id="loading">Signing in...</div>
+
+  <div class="divider"><span>or demo login</span></div>
+
+  <div class="demo-title">Quick access</div>
+  <button class="demo-btn" onclick="quickLogin('E056')">
+    National Sales Director (E056)
+    <span class="role-chip chip-nsd">NSD</span>
+  </button>
+  <button class="demo-btn" onclick="quickLogin('E051')">
+    District Manager 1 — NORTHEAST (E051)
+    <span class="role-chip chip-dm">DM</span>
+  </button>
+  <button class="demo-btn" onclick="quickLogin('E001')">
+    Rep 1 — ALBANY, NY (E001)
+    <span class="role-chip chip-oam">OAM</span>
+  </button>
+</div>
+
+<script>
+/**
+ * TerritoryAlign — API Client
+ * Automatically detects whether running locally (Docker) or on Render.
+ */
+
+// On Render, the frontend static site proxies /api to the backend.
+// Locally, nginx also proxies /api to the backend.
+// So /api always works regardless of environment.
+const API_BASE = 'https://territory-align-api.onrender.com/api';
+
+const Auth = {
+  getToken:   ()  => localStorage.getItem('ta_token'),
+  getUser:    ()  => JSON.parse(localStorage.getItem('ta_user') || 'null'),
+  setToken:   (t) => localStorage.setItem('ta_token', t),
+  setUser:    (u) => localStorage.setItem('ta_user', JSON.stringify(u)),
+  clear:      ()  => { localStorage.removeItem('ta_token'); localStorage.removeItem('ta_user'); },
+  isLoggedIn: ()  => !!localStorage.getItem('ta_token'),
+};
+
+async function apiFetch(path, options = {}) {
+  const token = Auth.getToken();
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(options.headers || {}),
+  };
+  if (options.body instanceof FormData) delete headers['Content-Type'];
+
+  const res = await fetch(API_BASE + path, { ...options, headers });
+
+  if (res.status === 401) {
+    Auth.clear();
+    window.location.href = '/login.html';
+    return;
+  }
+
+  const contentType = res.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    return data;
+  }
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res;
+}
+
+const api = {
+  auth: {
+    async login(personnel_id, password) {
+      const data = await apiFetch('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ personnel_id, password }),
+      });
+      Auth.setToken(data.token);
+      Auth.setUser(data.user);
+      return data.user;
+    },
+    async me()     { return apiFetch('/auth/me'); },
+    async logout() { await apiFetch('/auth/logout', { method: 'POST' }); Auth.clear(); },
+  },
+
+  territories: {
+    list(p = {})   { return apiFetch('/territories?' + new URLSearchParams(p)); },
+    get(id)        { return apiFetch(`/territories/${id}`); },
+    getHCPs(id, p) { return apiFetch(`/territories/${id}/hcps?` + new URLSearchParams(p)); },
+    getZIPs(id, p) { return apiFetch(`/territories/${id}/zips?` + new URLSearchParams(p)); },
+    update(id, b)  { return apiFetch(`/territories/${id}`, { method:'PUT', body:JSON.stringify(b) }); },
+  },
+
+  hcps: {
+    list(p = {})            { return apiFetch('/hcps?' + new URLSearchParams(p)); },
+    get(hcp_id)             { return apiFetch(`/hcps/${hcp_id}`); },
+    reassign(hcp_id, terr)  { return apiFetch(`/hcps/${hcp_id}/territory`, { method:'PUT', body:JSON.stringify({new_territory_name:terr}) }); },
+  },
+
+  zips: {
+    list(p = {})     { return apiFetch('/zips?' + new URLSearchParams(p)); },
+    conflicts()      { return apiFetch('/zips/conflicts'); },
+    reassign(c, t)   { return apiFetch(`/zips/${c}/territory`, { method:'PUT', body:JSON.stringify({new_territory_name:t}) }); },
+  },
+
+  requests: {
+    list(p = {})     { return apiFetch('/requests?' + new URLSearchParams(p)); },
+    get(id)          { return apiFetch(`/requests/${id}`); },
+    create(body)     { return apiFetch('/requests', { method:'POST', body:JSON.stringify(body) }); },
+    approve(id)      { return apiFetch(`/requests/${id}/approve`, { method:'PUT' }); },
+    reject(id, r)    { return apiFetch(`/requests/${id}/reject`, { method:'PUT', body:JSON.stringify({rejection_reason:r}) }); },
+    comment(id, c)   { return apiFetch(`/requests/${id}/comment`, { method:'POST', body:JSON.stringify({comment:c}) }); },
+  },
+
+  audit: {
+    list(p = {})  { return apiFetch('/audit?' + new URLSearchParams(p)); },
+    exportCSV()   { return apiFetch('/export/audit'); },
+  },
+
+  versions: {
+    list()             { return apiFetch('/versions'); },
+    rollback(l, r)     { return apiFetch(`/versions/${l}/rollback`, { method:'POST', body:JSON.stringify({reason:r}) }); },
+  },
+
+  roster: {
+    list(p = {})  { return apiFetch('/roster?' + new URLSearchParams(p)); },
+  },
+
+  conflicts: {
+    list()  { return apiFetch('/conflicts'); },
+  },
+
+  exports: {
+    async downloadCSV(endpoint, filename) {
+      const res  = await apiFetch(endpoint);
+      const blob = await res.blob();
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href = url; a.download = filename; a.click();
+      URL.revokeObjectURL(url);
+    },
+    ztt()         { return api.exports.downloadCSV('/export/ztt',         `ZTT_${Date.now()}.csv`); },
+    audit()       { return api.exports.downloadCSV('/export/audit',       `audit_${Date.now()}.csv`); },
+    territories() { return api.exports.downloadCSV('/export/territories', `territories_${Date.now()}.csv`); },
+  },
+
+  upload: {
+    async file(file, mode = 'append') {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('mode', mode);
+      return apiFetch('/upload', { method: 'POST', body: fd });
+    },
+  },
+};
+
+function requireAuth() {
+  if (!Auth.isLoggedIn()) {
+    window.location.href = '/login.html';
+    return false;
+  }
+  return true;
+}
+
+window.api  = api;
+window.Auth = Auth;
+window.requireAuth = requireAuth;
+
+</script>
+<script>
+// If already logged in, go to main app
+if (Auth.isLoggedIn()) window.location.href = '/pharma_tat_complete.html';
+
+document.getElementById('pwd').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+});
+
+async function doLogin() {
+  const pid = document.getElementById('pid').value.trim().toUpperCase();
+  const pwd = document.getElementById('pwd').value;
+  if (!pid || !pwd) { showError('Please enter your Personnel ID and password.'); return; }
+  setLoading(true);
+  try {
+    await api.auth.login(pid, pwd);
+    window.location.href = '/pharma_tat_complete.html';
+  } catch (err) {
+    showError(err.message === 'Invalid credentials'
+      ? 'Incorrect Personnel ID or password.'
+      : 'Connection error — is the server running?');
+    setLoading(false);
+  }
+}
+
+async function quickLogin(pid) {
+  document.getElementById('pid').value = pid;
+  document.getElementById('pwd').value = 'TerritoryAlign2026!';
+  doLogin();
+}
+
+function showError(msg) {
+  const el = document.getElementById('error-msg');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+function setLoading(on) {
+  document.getElementById('login-btn').disabled = on;
+  document.getElementById('loading').style.display = on ? 'block' : 'none';
+  if (!on) document.getElementById('error-msg').style.display = 'none';
+}
+</script>
+
+<script>
+// Keepalive ping - wakes backend before user even logs in
+setTimeout(() => {
+  fetch('https://territory-align-api.onrender.com/health')
+    .catch(() => {});
+}, 100);
+</script>
+</body>
+</html>

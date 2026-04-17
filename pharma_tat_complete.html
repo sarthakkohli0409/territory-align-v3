@@ -1,0 +1,1976 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TerritoryAlign — Complete Platform</title>
+<style>
+/* ===== BASE / PHASE 6 ===== */
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f5f7;--surface:#fff;--s2:#f5f5f7;--s3:#eeeef0;
+  --border:#e0e0e0;--border2:#c8c8cc;
+  --text:#1d1d1f;--t2:#555;--t3:#888;--t4:#bbb;
+  --blue:#0071e3;--blue-bg:#e8f0fe;--blue-t:#0058b0;
+  --green:#34c759;--green-bg:#e8f8f0;--green-t:#1a7a3c;
+  --red:#ff3b30;--red-bg:#fde8e8;--red-t:#c0392b;
+  --orange:#ff9500;--orange-bg:#fff3e0;--orange-t:#8a5000;
+  --purple:#9b59b6;--purple-bg:#f3e8fd;--purple-t:#6c3483;
+  --r:8px;--r2:12px;--font:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+/* ===== SHARED LAYOUT ===== */
+.topbar{height:52px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:12px;flex-shrink:0;z-index:50}
+.logo{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:600}
+.logo-icon{width:28px;height:28px;background:var(--blue-bg);border-radius:7px;display:flex;align-items:center;justify-content:center}
+.logo-icon svg{width:16px;height:16px}
+.ver-badge{font-size:10px;padding:3px 9px;background:var(--green-bg);border:1px solid var(--green);border-radius:10px;color:var(--green-t);font-weight:600;font-family:monospace}
+.tsep{flex:1}
+.role-pill{display:flex;align-items:center;gap:6px;background:var(--s2);border:1px solid var(--border);border-radius:20px;padding:4px 12px 4px 8px;font-size:12px;cursor:pointer}
+.rdot{width:8px;height:8px;border-radius:50%}
+.rdot.nsd{background:var(--red)}.rdot.dm{background:var(--orange)}.rdot.oam{background:var(--green)}
+.tbtn{padding:6px 14px;font-size:12px;font-family:var(--font);background:var(--surface);border:1px solid var(--border2);border-radius:20px;cursor:pointer;color:var(--t2);display:flex;align-items:center;gap:5px}
+.tbtn:hover{border-color:var(--blue);color:var(--blue)}
+.tbtn svg{width:12px;height:12px}
+.tbtn.pri{background:var(--blue);color:#fff;border-color:var(--blue)}
+.tbtn.pri:hover{background:#005cc5;border-color:#005cc5;color:#fff}
+.app-body{flex:1;display:flex;overflow:hidden}
+.sidebar{width:220px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;height:100%}
+.sb-user{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:9px}
+.av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0}
+.av-nsd{background:var(--red-bg);color:var(--red-t)}.av-dm{background:var(--orange-bg);color:var(--orange-t)}.av-oam{background:var(--green-bg);color:var(--green-t)}
+.ng{padding:5px 0}
+.nl{font-size:10px;font-weight:600;color:var(--t4);text-transform:uppercase;letter-spacing:.5px;padding:3px 14px}
+.ni{display:flex;align-items:center;gap:8px;padding:7px 14px;font-size:12px;color:var(--t2);cursor:pointer;border-left:2px solid transparent}
+.ni svg{width:13px;height:13px;flex-shrink:0;opacity:.7}
+.ni:hover{color:var(--text);background:var(--s2)}
+.ni.active{color:var(--blue);background:var(--blue-bg);border-left-color:var(--blue);font-weight:500}
+.ni.active svg{opacity:1}
+.nbadge{margin-left:auto;font-size:10px;padding:1px 6px;border-radius:8px;background:var(--red-bg);color:var(--red-t);font-weight:600}
+.sf{margin-top:auto;padding:10px 14px;border-top:1px solid var(--border)}
+.main{flex:1;overflow-y:auto;padding:24px}
+.page{display:none}.page.active{display:block}
+
+/* ===== SHARED COMPONENTS ===== */
+.metrics-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:20px}
+.mc{background:var(--s2);border-radius:var(--r);padding:14px 16px}
+.mc-label{font-size:10px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px}
+.mc-val{font-size:26px;font-weight:600;color:var(--text);line-height:1}
+.mc-sub{font-size:10px;color:var(--t3);margin-top:3px}
+.mc-sub.up{color:var(--green-t)}.mc-sub.warn{color:var(--orange-t)}.mc-sub.dn{color:var(--red-t)}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);padding:16px;margin-bottom:14px}
+.panel-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+.badge{display:inline-flex;align-items:center;font-size:10px;padding:2px 8px;border-radius:10px;font-weight:500}
+.b-blue{background:var(--blue-bg);color:var(--blue-t)}.b-green{background:var(--green-bg);color:var(--green-t)}
+.b-red{background:var(--red-bg);color:var(--red-t)}.b-orange{background:var(--orange-bg);color:var(--orange-t)}
+.b-gray{background:var(--s3);color:var(--t2)}.b-purple{background:var(--purple-bg);color:var(--purple-t)}
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.page-title{font-size:18px;font-weight:600;color:var(--text)}
+.toast{position:fixed;bottom:20px;right:20px;border-radius:var(--r);padding:11px 18px;font-size:12px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9999;max-width:320px;font-weight:500}
+.toast.show{opacity:1}
+.toast.success{background:#1a7a3c;color:#fff}.toast.info{background:var(--blue);color:#fff}
+.toast.warn{background:var(--orange-t);color:#fff}.toast.reject{background:var(--red-t);color:#fff}
+
+/* ===== VERSIONS PAGE ===== */
+.version-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);padding:16px 18px;margin-bottom:10px;display:flex;gap:14px;align-items:flex-start}
+.vc-ver{font-family:monospace;font-size:16px;font-weight:700;color:var(--blue-t);min-width:44px}
+.vc-body{flex:1}
+.vc-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px}
+.vc-meta{font-size:11px;color:var(--t3);margin-bottom:8px}
+.vc-stats{display:flex;gap:12px;flex-wrap:wrap}
+.vc-stat{font-size:10px;color:var(--t3)}
+.vc-stat strong{color:var(--text);font-weight:600}
+.vc-actions{display:flex;flex-direction:column;gap:6px;flex-shrink:0}
+.vc-btn{padding:5px 14px;font-size:11px;font-family:var(--font);background:var(--s2);border:1px solid var(--border2);border-radius:5px;cursor:pointer;color:var(--t2);font-weight:500;white-space:nowrap}
+.vc-btn:hover{border-color:var(--blue);color:var(--blue)}
+.vc-btn.danger{border-color:var(--red);color:var(--red-t)}
+.vc-btn.danger:hover{background:var(--red-bg)}
+.current-badge{font-size:10px;padding:3px 9px;border-radius:8px;background:var(--green-bg);color:var(--green-t);font-weight:600;border:1px solid var(--green)}
+.version-diff{background:var(--s2);border-radius:var(--r);padding:12px;margin-top:8px;display:none}
+.version-diff.open{display:block}
+.diff-row{display:flex;gap:10px;padding:4px 0;font-size:11px;border-bottom:1px solid var(--border)}
+.diff-row:last-child{border-bottom:none}
+.diff-field{color:var(--t3);min-width:120px}
+.diff-before{color:var(--red-t);flex:1}
+.diff-after{color:var(--green-t);flex:1}
+
+/* ===== ROLLBACK MODAL ===== */
+.modal-bd{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:500;align-items:center;justify-content:center}
+.modal-bd.open{display:flex}
+.modal{background:var(--surface);border-radius:var(--r2);width:480px;padding:22px}
+.modal-title{font-size:15px;font-weight:600;margin-bottom:4px}
+.modal-sub{font-size:12px;color:var(--t3);margin-bottom:16px}
+.warn-block{background:var(--red-bg);border:1px solid var(--red);border-radius:var(--r);padding:12px;margin-bottom:16px;font-size:11px;color:var(--red-t);line-height:1.6}
+.warn-block strong{display:block;margin-bottom:4px;font-size:12px}
+.modal-field{margin-bottom:12px}
+.modal-field label{font-size:10px;font-weight:600;color:var(--t3);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.3px}
+.modal-field input,.modal-field select,.modal-field textarea{width:100%;font-size:12px;padding:8px 11px;background:var(--s2);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:var(--font);outline:none}
+.modal-field input:focus{border-color:var(--blue)}
+.modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.btn-cancel{padding:8px 16px;font-size:12px;font-family:var(--font);background:var(--s2);border:1px solid var(--border2);border-radius:var(--r);cursor:pointer;color:var(--text)}
+.btn-rollback{padding:8px 16px;font-size:12px;font-weight:600;font-family:var(--font);background:var(--red-t);color:#fff;border:none;border-radius:var(--r);cursor:pointer}
+.btn-rollback:hover{background:#a93226}
+
+/* ===== DASHBOARD ===== */
+.two-col{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:16px;margin-bottom:16px}
+.t-table{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
+.t-table th{text-align:left;padding:6px 8px;color:var(--t3);font-weight:600;font-size:10px;border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.3px}
+.t-table td{padding:7px 8px;border-bottom:1px solid var(--border);color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.t-table tr:last-child td{border-bottom:none}
+.t-table tr:hover td{background:var(--s2)}
+.t-dot{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:5px}
+.bar-wrap{display:flex;align-items:center;gap:6px}
+.bar-bg{flex:1;height:4px;background:var(--s3);border-radius:2px;overflow:hidden}
+.bar-fill{height:100%;border-radius:2px}
+.req-row{display:flex;align-items:flex-start;gap:9px;padding:7px 0;border-bottom:1px solid var(--border)}
+.req-row:last-child{border-bottom:none}
+.req-icon{width:26px;height:26px;border-radius:5px;background:var(--blue-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.conflict-icon{width:26px;height:26px;border-radius:5px;background:var(--orange-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.idx-tabs{display:flex;gap:0;background:var(--s2);border-radius:var(--r);padding:3px;width:fit-content;margin-bottom:12px}
+.idx-tab{padding:5px 12px;font-size:11px;font-family:var(--font);border:none;background:none;border-radius:6px;cursor:pointer;color:var(--t3)}
+.idx-tab.active{background:var(--surface);color:var(--text);font-weight:600;border:1px solid var(--border)}
+.idx-desc-bar{font-size:10px;color:var(--t3);margin-bottom:10px;padding:5px 9px;background:var(--s2);border-radius:var(--r)}
+
+/* ===== PHASE 3: ALIGNMENT MANAGEMENT ===== */
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f5f7;--surface:#fff;--surface2:#f5f5f7;--surface3:#eeeef0;
+  --border:#e0e0e0;--border2:#c8c8cc;
+  --text:#1d1d1f;--text2:#555;--text3:#888;--text4:#aaa;
+  --blue:#0071e3;--blue-bg:#e8f0fe;--blue-text:#0058b0;
+  --green:#34c759;--green-bg:#e8f8f0;--green-text:#1a7a3c;
+  --red:#ff3b30;--red-bg:#fde8e8;--red-text:#c0392b;
+  --orange:#ff9500;--orange-bg:#fff3e0;--orange-text:#8a5000;
+  --purple:#9b59b6;--purple-bg:#f3e8fd;--purple-text:#6c3483;
+  --r:8px;--r2:12px;--font:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+/* TOP BAR */
+.topbar{height:52px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:14px;flex-shrink:0}
+.app-logo{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:600;color:var(--text)}
+.logo-icon{width:28px;height:28px;background:var(--blue-bg);border-radius:7px;display:flex;align-items:center;justify-content:center}
+.logo-icon svg{width:16px;height:16px}
+.phase-badge{font-size:10px;padding:3px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text3)}
+.topbar-sep{flex:1}
+.role-switcher{display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 12px 4px 8px;font-size:12px;cursor:pointer}
+.role-dot{width:8px;height:8px;border-radius:50%}
+.role-dot.nsd{background:#ff3b30}.role-dot.dm{background:#ff9500}.role-dot.oam{background:#34c759}
+.top-btn{padding:6px 14px;font-size:12px;font-family:var(--font);background:var(--surface);border:1px solid var(--border2);border-radius:20px;cursor:pointer;color:var(--text2);display:flex;align-items:center;gap:5px}
+.top-btn:hover{border-color:var(--blue);color:var(--blue)}
+.top-btn svg{width:12px;height:12px}
+.top-btn.primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+.top-btn.primary:hover{background:#005cc5;border-color:#005cc5;color:#fff}
+
+/* LAYOUT */
+.app-body{flex:1;display:flex;overflow:hidden}
+.sidebar{width:220px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;height:100%}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+
+/* SIDEBAR */
+.sb-role{padding:12px 14px;border-bottom:1px solid var(--border)}
+.sb-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0}
+.av-nsd{background:var(--red-bg);color:var(--red-text)}
+.av-dm{background:var(--orange-bg);color:var(--orange-text)}
+.av-oam{background:var(--green-bg);color:var(--green-text)}
+.sb-name{font-size:12px;font-weight:600;color:var(--text)}
+.sb-subrole{font-size:10px;color:var(--text3)}
+.nav-group{padding:6px 0}
+.nav-label{font-size:10px;font-weight:600;color:var(--text4);text-transform:uppercase;letter-spacing:0.5px;padding:3px 14px}
+.nav-item{display:flex;align-items:center;gap:8px;padding:7px 14px;font-size:12px;color:var(--text2);cursor:pointer;border-left:2px solid transparent}
+.nav-item svg{width:13px;height:13px;flex-shrink:0;opacity:.7}
+.nav-item:hover{color:var(--text);background:var(--surface2)}
+.nav-item.active{color:var(--blue);background:var(--blue-bg);border-left-color:var(--blue);font-weight:500}
+.nav-item.active svg{opacity:1}
+.nav-badge{margin-left:auto;font-size:10px;padding:1px 6px;border-radius:8px;background:var(--red-bg);color:var(--red-text);font-weight:600}
+.sidebar-footer{margin-top:auto;padding:12px 14px;border-top:1px solid var(--border)}
+.logout-btn{font-size:12px;color:var(--text3);cursor:pointer;background:none;border:none;font-family:var(--font);display:flex;align-items:center;gap:6px}
+.logout-btn:hover{color:var(--text)}
+
+/* SUB-TABS */
+.subtab-bar{display:flex;gap:0;padding:0 20px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
+.subtab{padding:10px 16px;font-size:12px;font-family:var(--font);border:none;background:none;cursor:pointer;color:var(--text3);border-bottom:2px solid transparent;display:flex;align-items:center;gap:6px}
+.subtab:hover{color:var(--text)}
+.subtab.active{color:var(--blue);border-bottom-color:var(--blue);font-weight:500}
+.subtab-badge{font-size:10px;padding:1px 6px;border-radius:8px;background:var(--surface2);color:var(--text3)}
+.subtab.active .subtab-badge{background:var(--blue-bg);color:var(--blue-text)}
+
+/* CONTENT */
+.content-area{flex:1;overflow-y:auto;padding:20px}
+.view{display:none}.view.active{display:block}
+
+/* FILTER BAR */
+.filter-bar{display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.filter-bar input,.filter-bar select{font-size:12px;padding:7px 11px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:var(--font);outline:none}
+.filter-bar input{flex:1;min-width:160px}
+.filter-bar input:focus,.filter-bar select:focus{border-color:var(--blue)}
+.filter-count{font-size:12px;color:var(--text3);white-space:nowrap}
+
+/* TABLES */
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden}
+.data-table{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
+.data-table th{text-align:left;padding:9px 12px;font-size:10px;font-weight:600;color:var(--text3);background:var(--surface2);border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:0.4px}
+.data-table td{padding:9px 12px;border-bottom:1px solid var(--border);color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle}
+.data-table tr:last-child td{border-bottom:none}
+.data-table tr:hover td{background:#f9f9fb}
+.data-table tr.selected td{background:var(--blue-bg)}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;font-size:10px;padding:2px 8px;border-radius:10px;font-weight:500;white-space:nowrap}
+.badge-blue{background:var(--blue-bg);color:var(--blue-text)}
+.badge-green{background:var(--green-bg);color:var(--green-text)}
+.badge-red{background:var(--red-bg);color:var(--red-text)}
+.badge-orange{background:var(--orange-bg);color:var(--orange-text)}
+.badge-purple{background:var(--purple-bg);color:var(--purple-text)}
+.badge-gray{background:var(--surface2);color:var(--text3)}
+.tier-1{background:#e8f0fe;color:#0058b0}
+.tier-2{background:#e8f8f0;color:#1a7a3c}
+.tier-3{background:#fff3e0;color:#8a5000}
+.tier-4{background:#fde8e8;color:#c0392b}
+
+/* COLOR DOT */
+.t-dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex-shrink:0}
+
+/* INLINE EDIT */
+.edit-cell{display:flex;align-items:center;gap:6px}
+.inline-select{font-size:11px;padding:3px 7px;background:var(--surface);border:1px solid var(--blue);border-radius:5px;color:var(--text);font-family:var(--font);outline:none;cursor:pointer}
+.edit-save-btn{padding:3px 9px;font-size:10px;font-family:var(--font);background:var(--blue);color:#fff;border:none;border-radius:5px;cursor:pointer;font-weight:500}
+.edit-save-btn:hover{background:#005cc5}
+.edit-cancel-btn{padding:3px 7px;font-size:10px;font-family:var(--font);background:none;border:1px solid var(--border2);border-radius:5px;cursor:pointer;color:var(--text2)}
+
+/* ACTION BUTTONS */
+.action-btn{padding:4px 10px;font-size:10px;font-family:var(--font);background:var(--surface);border:1px solid var(--border2);border-radius:5px;cursor:pointer;color:var(--text2);white-space:nowrap}
+.action-btn:hover{border-color:var(--blue);color:var(--blue)}
+.action-btn.danger:hover{border-color:var(--red);color:var(--red-text)}
+.action-btn.success{background:var(--green-bg);border-color:var(--green);color:var(--green-text)}
+
+/* BAR */
+.idx-bar-wrap{display:flex;align-items:center;gap:6px}
+.idx-bar-bg{flex:1;height:4px;background:var(--surface3);border-radius:2px;overflow:hidden;min-width:40px}
+.idx-bar-fill{height:100%;border-radius:2px}
+
+/* METRIC CARDS */
+.metrics-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:20px}
+.metric-card{background:var(--surface2);border-radius:var(--r);padding:14px 16px}
+.metric-label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:5px}
+.metric-val{font-size:26px;font-weight:600;color:var(--text);line-height:1}
+.metric-sub{font-size:10px;color:var(--text3);margin-top:3px}
+.metric-sub.up{color:var(--green-text)}.metric-sub.warn{color:var(--orange-text)}.metric-sub.danger{color:var(--red-text)}
+
+/* DETAIL PANEL (slide-in right) */
+.detail-overlay{display:none;position:absolute;inset:0;background:rgba(0,0,0,0.3);z-index:100}
+.detail-overlay.open{display:block}
+.detail-panel{position:absolute;top:0;right:0;bottom:0;width:400px;background:var(--surface);border-left:1px solid var(--border);overflow-y:auto;transform:translateX(0);z-index:101}
+.detail-header{padding:16px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.detail-close{margin-left:auto;background:none;border:none;cursor:pointer;font-size:18px;color:var(--text3);padding:2px 6px;border-radius:4px}
+.detail-close:hover{background:var(--surface2);color:var(--text)}
+.detail-body{padding:18px}
+.detail-section{margin-bottom:20px}
+.detail-section-title{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;padding-bottom:4px;border-bottom:1px solid var(--border)}
+.detail-row{display:flex;justify-content:space-between;align-items:flex-start;padding:5px 0;border-bottom:1px solid var(--bg);font-size:12px}
+.detail-row:last-child{border-bottom:none}
+.detail-key{color:var(--text3);min-width:100px}
+.detail-val{font-weight:500;color:var(--text);text-align:right;flex:1}
+.idx-detail-row{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:11px}
+.idx-name{color:var(--text3);min-width:50px}
+.idx-val{min-width:44px;text-align:right;font-weight:500;font-size:11px}
+.detail-action-row{display:flex;gap:8px;margin-top:14px}
+.detail-action-btn{flex:1;padding:8px;font-size:12px;font-family:var(--font);background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);cursor:pointer;color:var(--text2);font-weight:500}
+.detail-action-btn:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-bg)}
+.detail-action-btn.primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+.detail-action-btn.primary:hover{background:#005cc5}
+
+/* MODAL */
+.modal-backdrop{display:none;position:absolute;inset:0;background:rgba(0,0,0,0.4);z-index:200;align-items:center;justify-content:center}
+.modal-backdrop.open{display:flex}
+.modal{background:var(--surface);border-radius:var(--r2);width:460px;max-height:90vh;overflow-y:auto;padding:22px}
+.modal-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:16px}
+.modal-field{margin-bottom:12px}
+.modal-field label{font-size:10px;font-weight:600;color:var(--text3);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.3px}
+.modal-field input,.modal-field select,.modal-field textarea{width:100%;font-size:12px;padding:8px 11px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:var(--font);outline:none}
+.modal-field input:focus,.modal-field select:focus,.modal-field textarea:focus{border-color:var(--blue)}
+.modal-field textarea{resize:vertical;min-height:64px}
+.ba-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.ba-box{background:var(--surface2);border-radius:var(--r);padding:10px}
+.ba-label{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:4px}
+.ba-label.before{color:var(--red-text)}.ba-label.after{color:var(--green-text)}
+.ba-val{font-size:11px;color:var(--text)}
+.sim-panel{background:var(--surface2);border-radius:var(--r);padding:12px;margin-bottom:12px}
+.sim-title{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.3px;margin-bottom:8px}
+.sim-row{display:flex;justify-content:space-between;font-size:11px;padding:3px 0}
+.sim-key{color:var(--text3)}
+.sim-val{font-weight:600}
+.sim-val.up{color:var(--red-text)}.sim-val.down{color:var(--green-text)}.sim-val.neutral{color:var(--text3)}
+.warn-box{background:var(--orange-bg);border:1px solid #f5c842;border-radius:var(--r);padding:8px 11px;margin-bottom:12px;font-size:11px;color:var(--orange-text);display:flex;align-items:flex-start;gap:7px}
+.modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.btn-cancel{padding:8px 16px;font-size:12px;font-family:var(--font);background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);cursor:pointer;color:var(--text)}
+.btn-submit{padding:8px 16px;font-size:12px;font-weight:600;font-family:var(--font);background:var(--blue);color:#fff;border:none;border-radius:var(--r);cursor:pointer}
+.btn-submit:hover{background:#005cc5}
+.btn-danger{padding:8px 16px;font-size:12px;font-weight:600;font-family:var(--font);background:var(--red-bg);color:var(--red-text);border:1px solid var(--red);border-radius:var(--r);cursor:pointer}
+
+/* TOAST */
+.toast{position:absolute;bottom:18px;right:18px;background:var(--text);color:#fff;border-radius:var(--r);padding:10px 16px;font-size:12px;opacity:0;transition:opacity 0.2s;pointer-events:none;z-index:999;max-width:280px}
+.toast.show{opacity:1}
+.toast.success{background:#1a7a3c}
+.toast.warn{background:var(--orange-text)}
+
+/* CONFLICT WARNING BANNER */
+.conflict-banner{background:var(--orange-bg);border:1px solid #f5c842;border-radius:var(--r);padding:8px 14px;margin-bottom:14px;font-size:11px;color:var(--orange-text);display:flex;align-items:center;gap:8px}
+.conflict-banner svg{width:14px;height:14px;flex-shrink:0}
+
+/* EMPTY STATE */
+.empty-state{text-align:center;padding:48px 20px;color:var(--text3)}
+.empty-state svg{width:40px;height:40px;margin:0 auto 12px;opacity:.3}
+.empty-state p{font-size:13px}
+
+/* PAGINATION */
+.pagination{display:flex;align-items:center;justify-content:space-between;padding:10px 0;font-size:11px;color:var(--text3)}
+.pag-btns{display:flex;gap:4px}
+.pag-btn{padding:4px 10px;font-size:11px;font-family:var(--font);background:var(--surface);border:1px solid var(--border);border-radius:5px;cursor:pointer;color:var(--text2)}
+.pag-btn:hover{border-color:var(--blue);color:var(--blue)}
+.pag-btn.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+.pag-btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* CONFLICT INDICATORS */
+.conflict-dot{width:7px;height:7px;border-radius:50%;background:var(--orange);display:inline-block;margin-right:4px;flex-shrink:0}
+
+/* RESPONSIVE OVERFLOW NOTE */
+@media(max-width:900px){.metrics-row{grid-template-columns:repeat(2,1fr)}}
+
+/* ===== PHASE 4: REQUEST WORKFLOW ===== */
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f5f7;--surface:#fff;--surface2:#f5f5f7;--surface3:#eeeef0;
+  --border:#e0e0e0;--border2:#c8c8cc;
+  --text:#1d1d1f;--text2:#555;--text3:#888;--text4:#aaa;
+  --blue:#0071e3;--blue-bg:#e8f0fe;--blue-text:#0058b0;
+  --green:#34c759;--green-bg:#e8f8f0;--green-text:#1a7a3c;
+  --red:#ff3b30;--red-bg:#fde8e8;--red-text:#c0392b;
+  --orange:#ff9500;--orange-bg:#fff3e0;--orange-text:#7a5000;
+  --purple:#9b59b6;--purple-bg:#f3e8fd;--purple-text:#6c3483;
+  --font:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --r:8px;--r2:12px
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+/* TOP BAR */
+.topbar{height:52px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:12px;flex-shrink:0}
+.app-logo{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:600}
+.logo-icon{width:28px;height:28px;background:var(--blue-bg);border-radius:7px;display:flex;align-items:center;justify-content:center}
+.logo-icon svg{width:16px;height:16px}
+.phase-badge{font-size:10px;padding:3px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text3)}
+.topbar-sep{flex:1}
+.role-switcher{display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 12px 4px 8px;font-size:12px;cursor:pointer;user-select:none}
+.role-dot{width:8px;height:8px;border-radius:50%}
+.role-dot.nsd{background:var(--red)}.role-dot.dm{background:var(--orange)}.role-dot.oam{background:var(--green)}
+.tb-btn{padding:6px 14px;font-size:12px;font-family:var(--font);background:var(--surface);border:1px solid var(--border2);border-radius:20px;cursor:pointer;color:var(--text2);display:flex;align-items:center;gap:5px}
+.tb-btn:hover{border-color:var(--blue);color:var(--blue)}
+.tb-btn svg{width:12px;height:12px}
+.tb-btn.primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+.tb-btn.primary:hover{background:#005cc5;border-color:#005cc5;color:#fff}
+
+/* LAYOUT */
+.app-body{flex:1;display:flex;overflow:hidden}
+
+/* SIDEBAR */
+.sidebar{width:220px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;height:100%}
+.sb-user{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:9px}
+.sb-av{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0}
+.av-nsd{background:var(--red-bg);color:var(--red-text)}.av-dm{background:var(--orange-bg);color:var(--orange-text)}.av-oam{background:var(--green-bg);color:var(--green-text)}
+.sb-name{font-size:12px;font-weight:600;color:var(--text)}
+.sb-sub{font-size:10px;color:var(--text3)}
+.nav-g{padding:6px 0}
+.nav-lbl{font-size:10px;font-weight:600;color:var(--text4);text-transform:uppercase;letter-spacing:.5px;padding:3px 14px}
+.nav-i{display:flex;align-items:center;gap:8px;padding:7px 14px;font-size:12px;color:var(--text2);cursor:pointer;border-left:2px solid transparent}
+.nav-i svg{width:13px;height:13px;flex-shrink:0;opacity:.7}
+.nav-i:hover{color:var(--text);background:var(--surface2)}
+.nav-i.active{color:var(--blue);background:var(--blue-bg);border-left-color:var(--blue);font-weight:500}
+.nav-i.active svg{opacity:1}
+.nb{margin-left:auto;font-size:10px;padding:1px 6px;border-radius:8px;background:var(--red-bg);color:var(--red-text);font-weight:600}
+.sb-footer{margin-top:auto;padding:10px 14px;border-top:1px solid var(--border)}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+
+/* STATUS TABS */
+.status-bar{display:flex;align-items:center;padding:0 20px;background:var(--surface);border-bottom:1px solid var(--border);gap:0;flex-shrink:0}
+.stab{padding:10px 16px;font-size:12px;font-family:var(--font);border:none;background:none;cursor:pointer;color:var(--text3);border-bottom:2px solid transparent;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.stab:hover{color:var(--text)}
+.stab.active{color:var(--blue);border-bottom-color:var(--blue);font-weight:500}
+.stab-count{font-size:10px;padding:1px 6px;border-radius:8px;background:var(--surface2);color:var(--text3)}
+.stab.active .stab-count{background:var(--blue-bg);color:var(--blue-text)}
+.stab-count.red{background:var(--red-bg);color:var(--red-text)}
+.status-bar-sep{flex:1}
+
+/* CONTENT */
+.content{flex:1;overflow:hidden;display:flex}
+.req-list-pane{width:340px;flex-shrink:0;border-right:1px solid var(--border);overflow-y:auto;background:var(--surface)}
+.req-detail-pane{flex:1;overflow-y:auto;background:var(--bg);min-width:0}
+
+/* REQUEST LIST */
+.req-list-header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.req-list-search{flex:1;font-size:11px;padding:6px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:var(--font);outline:none}
+.req-list-search:focus{border-color:var(--blue)}
+.req-list-filter{font-size:11px;padding:6px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:var(--font);outline:none}
+.req-card{padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;flex-direction:column;gap:4px}
+.req-card:hover{background:var(--surface2)}
+.req-card.active{background:var(--blue-bg);border-left:3px solid var(--blue)}
+.req-card-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.req-id{font-size:10px;font-family:monospace;color:var(--text3)}
+.req-type-tag{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:500;white-space:nowrap}
+.rt-change{background:var(--blue-bg);color:var(--blue-text)}
+.rt-add{background:var(--green-bg);color:var(--green-text)}
+.rt-remove{background:var(--red-bg);color:var(--red-text)}
+.rt-zip{background:var(--purple-bg);color:var(--purple-text)}
+.rt-rep{background:var(--orange-bg);color:var(--orange-text)}
+.req-card-title{font-size:12px;font-weight:500;color:var(--text);line-height:1.3}
+.req-card-meta{font-size:10px;color:var(--text3);display:flex;align-items:center;gap:6px}
+.req-card-meta-dot{width:3px;height:3px;border-radius:50%;background:var(--text4)}
+.status-pip{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.sp-pending{background:var(--orange)}.sp-approved{background:var(--green)}.sp-rejected{background:var(--red)}.sp-review{background:var(--blue)}
+.conflict-pip{width:7px;height:7px;border-radius:50%;background:var(--red);flex-shrink:0}
+
+/* DETAIL PANE */
+.detail-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;color:var(--text3)}
+.detail-empty svg{width:48px;height:48px;opacity:.2}
+.detail-empty p{font-size:13px}
+
+.detail-inner{padding:24px}
+.detail-head{display:flex;align-items:flex-start;gap:14px;margin-bottom:20px}
+.detail-icon{width:44px;height:44px;border-radius:var(--r2);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.detail-title{font-size:18px;font-weight:600;color:var(--text);margin-bottom:3px}
+.detail-sub{font-size:12px;color:var(--text3);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.status-badge{font-size:11px;padding:3px 10px;border-radius:10px;font-weight:500}
+.sb-pending{background:var(--orange-bg);color:var(--orange-text)}
+.sb-approved{background:var(--green-bg);color:var(--green-text)}
+.sb-rejected{background:var(--red-bg);color:var(--red-text)}
+.sb-review{background:var(--blue-bg);color:var(--blue-text)}
+
+/* WORKFLOW STEPS */
+.workflow-strip{display:flex;align-items:center;gap:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);padding:14px 20px;margin-bottom:20px}
+.wf-step{display:flex;flex-direction:column;align-items:center;flex:1;position:relative}
+.wf-step:not(:last-child)::after{content:'';position:absolute;top:15px;left:calc(50% + 16px);right:calc(-50% + 16px);height:2px;background:var(--border)}
+.wf-step.done::after{background:var(--green)}
+.wf-step.active-step::after{background:var(--blue)}
+.wf-circle{width:30px;height:30px;border-radius:50%;border:2px solid var(--border);background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--text3);margin-bottom:5px;z-index:1;position:relative}
+.wf-step.done .wf-circle{border-color:var(--green);background:var(--green-bg);color:var(--green-text)}
+.wf-step.active-step .wf-circle{border-color:var(--blue);background:var(--blue-bg);color:var(--blue-text)}
+.wf-step.rejected-step .wf-circle{border-color:var(--red);background:var(--red-bg);color:var(--red-text)}
+.wf-label{font-size:10px;color:var(--text3);font-weight:500;text-align:center}
+.wf-step.done .wf-label{color:var(--green-text)}
+.wf-step.active-step .wf-label{color:var(--blue-text)}
+.wf-step.rejected-step .wf-label{color:var(--red-text)}
+
+/* TWO COL */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+
+/* CARDS */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);padding:16px}
+.card-title{font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:12px}
+.info-row{display:flex;justify-content:space-between;align-items:flex-start;padding:5px 0;border-bottom:1px solid var(--surface2);font-size:12px}
+.info-row:last-child{border-bottom:none}
+.info-k{color:var(--text3)}.info-v{font-weight:500;color:var(--text);text-align:right}
+
+/* BEFORE / AFTER */
+.ba-row{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;margin-bottom:16px}
+.ba-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);padding:14px}
+.ba-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px}
+.ba-label.before{color:var(--red-text)}.ba-label.after{color:var(--green-text)}
+.ba-terr{font-size:14px;font-weight:600;color:var(--text);margin-bottom:3px}
+.ba-rep{font-size:11px;color:var(--text3)}
+.ba-arrow{font-size:20px;color:var(--text4);text-align:center}
+
+/* SIMULATION */
+.sim-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);padding:16px;margin-bottom:16px}
+.sim-title{font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+.sim-table{width:100%;border-collapse:collapse;font-size:12px}
+.sim-table th{text-align:left;padding:6px 10px;font-size:10px;font-weight:600;color:var(--text3);background:var(--surface2);border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.3px}
+.sim-table td{padding:8px 10px;border-bottom:1px solid var(--surface2)}
+.sim-table tr:last-child td{border-bottom:none}
+.sim-table .metric-col{color:var(--text3);font-size:11px}
+.sim-table .before-col{font-weight:500}
+.sim-table .after-col{font-weight:500}
+.sim-table .delta-col{font-weight:600}
+.delta-up{color:var(--green-text)}.delta-down{color:var(--red-text)}.delta-neutral{color:var(--text3)}
+.mini-bar-wrap{display:flex;align-items:center;gap:6px}
+.mini-bar-bg{width:60px;height:4px;background:var(--surface3);border-radius:2px;overflow:hidden;flex-shrink:0}
+.mini-bar-fill{height:100%;border-radius:2px}
+
+/* CONFLICT */
+.conflict-card{background:var(--orange-bg);border:1px solid #f5c842;border-radius:var(--r2);padding:14px 16px;margin-bottom:16px}
+.conflict-title{font-size:12px;font-weight:600;color:var(--orange-text);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.conflict-item{font-size:11px;color:var(--orange-text);padding:4px 0;border-bottom:1px solid rgba(0,0,0,.06);display:flex;align-items:center;gap:8px}
+.conflict-item:last-child{border-bottom:none}
+.conflict-item svg{width:12px;height:12px;flex-shrink:0}
+
+/* COMMENTS */
+.comment-thread{margin-bottom:16px}
+.comment{display:flex;gap:10px;margin-bottom:12px}
+.comment-av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;flex-shrink:0}
+.comment-body{flex:1}
+.comment-header{display:flex;align-items:center;gap:8px;margin-bottom:3px}
+.comment-name{font-size:11px;font-weight:600;color:var(--text)}
+.comment-time{font-size:10px;color:var(--text4)}
+.comment-text{font-size:12px;color:var(--text2);line-height:1.5}
+.comment-input-row{display:flex;gap:8px;align-items:flex-start}
+.comment-input{flex:1;font-size:12px;padding:8px 11px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:var(--font);resize:none;outline:none;min-height:60px}
+.comment-input:focus{border-color:var(--blue)}
+.comment-send-btn{padding:8px 14px;font-size:11px;font-family:var(--font);background:var(--blue);color:#fff;border:none;border-radius:var(--r);cursor:pointer;font-weight:500;align-self:flex-end}
+
+/* ACTION FOOTER */
+.action-footer{background:var(--surface);border-top:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.action-note{font-size:11px;color:var(--text3);flex:1}
+.act-btn{padding:9px 20px;font-size:13px;font-weight:600;font-family:var(--font);border-radius:var(--r);cursor:pointer;display:flex;align-items:center;gap:6px}
+.act-btn svg{width:14px;height:14px}
+.btn-approve{background:var(--green-bg);color:var(--green-text);border:1.5px solid var(--green)}
+.btn-approve:hover{background:#d4f5e2}
+.btn-reject{background:var(--red-bg);color:var(--red-text);border:1.5px solid var(--red)}
+.btn-reject:hover{background:#fdd}
+.btn-request{background:var(--blue);color:#fff;border:none}
+.btn-request:hover{background:#005cc5}
+.btn-secondary{background:var(--surface2);color:var(--text2);border:1px solid var(--border2)}
+.btn-secondary:hover{border-color:var(--blue);color:var(--blue)}
+
+/* NEW REQUEST FORM */
+.form-pane{padding:24px;overflow-y:auto;height:100%}
+.form-title{font-size:18px;font-weight:600;margin-bottom:20px}
+.form-section{margin-bottom:20px}
+.form-section-title{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.field{margin-bottom:12px}
+.field label{font-size:11px;font-weight:600;color:var(--text3);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.3px}
+.field input,.field select,.field textarea{width:100%;font-size:12px;padding:8px 11px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:var(--font);outline:none}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--blue)}
+.field textarea{resize:vertical;min-height:72px}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.sim-preview{background:var(--surface2);border-radius:var(--r);padding:14px;margin-top:8px}
+.sim-preview-title{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.3px;margin-bottom:8px}
+.sim-preview-row{display:flex;justify-content:space-between;font-size:11px;padding:3px 0}
+.conflict-preview{background:var(--orange-bg);border:1px solid #f5c842;border-radius:var(--r);padding:10px 12px;margin-top:8px;font-size:11px;color:var(--orange-text);display:flex;gap:7px;align-items:flex-start;display:none}
+.form-footer{display:flex;gap:10px;justify-content:flex-end;padding-top:12px;border-top:1px solid var(--border);margin-top:4px}
+.btn-cancel-f{padding:9px 18px;font-size:12px;font-family:var(--font);background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);cursor:pointer;color:var(--text)}
+.btn-submit-f{padding:9px 18px;font-size:12px;font-weight:600;font-family:var(--font);background:var(--blue);color:#fff;border:none;border-radius:var(--r);cursor:pointer}
+.btn-submit-f:hover{background:#005cc5}
+
+/* BADGE */
+.badge{display:inline-flex;align-items:center;font-size:10px;padding:2px 8px;border-radius:10px;font-weight:500}
+
+/* TOAST */
+.toast{position:fixed;bottom:18px;right:18px;background:var(--text);color:#fff;border-radius:var(--r);padding:11px 16px;font-size:12px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9999;max-width:300px}
+.toast.show{opacity:1}
+.toast.success{background:#1a7a3c}
+.toast.warn{background:var(--orange-text)}
+.toast.error{background:var(--red-text)}
+
+/* METRICS SUMMARY */
+.metrics-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;padding:16px 20px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
+.mc{background:var(--surface2);border-radius:var(--r);padding:10px 12px}
+.mc-lbl{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
+.mc-val{font-size:22px;font-weight:600;line-height:1}
+.mc-sub{font-size:10px;color:var(--text3);margin-top:2px}
+.mc-sub.up{color:var(--green-text)}.mc-sub.warn{color:var(--orange-text)}.mc-sub.danger{color:var(--red-text)}
+
+/* DOT */
+.t-dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex-shrink:0;margin-right:4px}
+
+/* ===== PHASE 5: AUDIT & ADMIN ===== */
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f5f7;--surface:#fff;--s2:#f5f5f7;--s3:#eeeef0;
+  --border:#e0e0e0;--border2:#c8c8cc;
+  --text:#1d1d1f;--t2:#555;--t3:#888;--t4:#bbb;
+  --blue:#0071e3;--blue-bg:#e8f0fe;--blue-t:#0058b0;
+  --green:#34c759;--green-bg:#e8f8f0;--green-t:#1a7a3c;
+  --red:#ff3b30;--red-bg:#fde8e8;--red-t:#c0392b;
+  --orange:#ff9500;--orange-bg:#fff3e0;--orange-t:#8a5000;
+  --purple:#9b59b6;--purple-bg:#f3e8fd;--purple-t:#6c3483;
+  --r:8px;--r2:12px;--font:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+.topbar{height:52px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:12px;flex-shrink:0}
+.logo{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:600}
+.logo-icon{width:28px;height:28px;background:var(--blue-bg);border-radius:7px;display:flex;align-items:center;justify-content:center}
+.logo-icon svg{width:16px;height:16px}
+.phase-tag{font-size:10px;padding:3px 8px;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--t3)}
+.tsep{flex:1}
+.role-pill{display:flex;align-items:center;gap:6px;background:var(--s2);border:1px solid var(--border);border-radius:20px;padding:4px 12px 4px 8px;font-size:12px;cursor:pointer}
+.rdot{width:8px;height:8px;border-radius:50%}
+.rdot.nsd{background:var(--red)}.rdot.dm{background:var(--orange)}.rdot.oam{background:var(--green)}
+.tbtn{padding:6px 14px;font-size:12px;font-family:var(--font);background:var(--surface);border:1px solid var(--border2);border-radius:20px;cursor:pointer;color:var(--t2);display:flex;align-items:center;gap:5px}
+.tbtn:hover{border-color:var(--blue);color:var(--blue)}
+.tbtn svg{width:12px;height:12px}
+.tbtn.pri{background:var(--blue);color:#fff;border-color:var(--blue)}
+.tbtn.pri:hover{background:#005cc5;border-color:#005cc5;color:#fff}
+.app-body{flex:1;display:flex;overflow:hidden}
+.sidebar{width:220px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;height:100%}
+.sb-user{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:9px}
+.av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0}
+.av-nsd{background:var(--red-bg);color:var(--red-t)}.av-dm{background:var(--orange-bg);color:var(--orange-t)}.av-oam{background:var(--green-bg);color:var(--green-t)}
+.ng{padding:5px 0}
+.nl{font-size:10px;font-weight:600;color:var(--t4);text-transform:uppercase;letter-spacing:.5px;padding:3px 14px}
+.ni{display:flex;align-items:center;gap:8px;padding:7px 14px;font-size:12px;color:var(--t2);cursor:pointer;border-left:2px solid transparent}
+.ni svg{width:13px;height:13px;flex-shrink:0;opacity:.7}
+.ni:hover{color:var(--text);background:var(--s2)}
+.ni.active{color:var(--blue);background:var(--blue-bg);border-left-color:var(--blue);font-weight:500}
+.ni.active svg{opacity:1}
+.sf{margin-top:auto;padding:10px 14px;border-top:1px solid var(--border)}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.subtab-bar{display:flex;padding:0 20px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
+.stab{padding:10px 16px;font-size:12px;font-family:var(--font);border:none;background:none;cursor:pointer;color:var(--t3);border-bottom:2px solid transparent;display:flex;align-items:center;gap:6px}
+.stab:hover{color:var(--text)}
+.stab.active{color:var(--blue);border-bottom-color:var(--blue);font-weight:500}
+.stab-badge{font-size:10px;padding:1px 6px;border-radius:8px;background:var(--s2);color:var(--t3)}
+.stab.active .stab-badge{background:var(--blue-bg);color:var(--blue-t)}
+.content{flex:1;overflow-y:auto;padding:20px}
+.view{display:none}.view.active{display:block}
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.page-title{font-size:16px;font-weight:600;color:var(--text)}
+.metrics-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:20px}
+.mc{background:var(--s2);border-radius:var(--r);padding:14px 16px}
+.mc-label{font-size:10px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px}
+.mc-val{font-size:26px;font-weight:600;color:var(--text);line-height:1}
+.mc-sub{font-size:10px;color:var(--t3);margin-top:3px}
+.mc-sub.up{color:var(--green-t)}.mc-sub.warn{color:var(--orange-t)}.mc-sub.dn{color:var(--red-t)}
+.filter-bar{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.filter-bar input,.filter-bar select{font-size:12px;padding:7px 11px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:var(--font);outline:none}
+.filter-bar input{flex:1;min-width:180px}
+.filter-bar input:focus,.filter-bar select:focus{border-color:var(--blue)}
+.fcount{font-size:11px;color:var(--t3);white-space:nowrap}
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden}
+.dt{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
+.dt th{text-align:left;padding:9px 12px;font-size:10px;font-weight:600;color:var(--t3);background:var(--s2);border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.4px}
+.dt td{padding:9px 12px;border-bottom:1px solid var(--border);color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle}
+.dt tr:last-child td{border-bottom:none}
+.dt tr:hover td{background:#f9f9fb}
+.badge{display:inline-flex;align-items:center;font-size:10px;padding:2px 8px;border-radius:10px;font-weight:500}
+.b-blue{background:var(--blue-bg);color:var(--blue-t)}
+.b-green{background:var(--green-bg);color:var(--green-t)}
+.b-red{background:var(--red-bg);color:var(--red-t)}
+.b-orange{background:var(--orange-bg);color:var(--orange-t)}
+.b-purple{background:var(--purple-bg);color:var(--purple-t)}
+.b-gray{background:var(--s3);color:var(--t2)}
+.export-bar{display:flex;gap:10px;flex-wrap:wrap}
+.exp-btn{padding:9px 18px;font-size:12px;font-family:var(--font);background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);cursor:pointer;color:var(--t2);display:flex;align-items:center;gap:7px;font-weight:500;transition:all .15s}
+.exp-btn:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-bg)}
+.exp-btn svg{width:14px;height:14px}
+.exp-btn.primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+.exp-btn.primary:hover{background:#005cc5}
+.exp-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);padding:18px 20px;margin-bottom:12px;display:flex;align-items:flex-start;gap:14px}
+.exp-icon{width:44px;height:44px;border-radius:var(--r);background:var(--blue-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.exp-icon svg{width:22px;height:22px}
+.exp-info{flex:1}
+.exp-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:3px}
+.exp-desc{font-size:12px;color:var(--t3);line-height:1.5;margin-bottom:10px}
+.exp-meta{font-size:10px;color:var(--t4)}
+.upload-zone{border:2px dashed var(--border2);border-radius:var(--r2);padding:40px 20px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:16px}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--blue);background:var(--blue-bg)}
+.upload-zone svg{width:40px;height:40px;margin:0 auto 12px;display:block;color:var(--t3)}
+.upload-zone p{font-size:13px;color:var(--t2);margin-bottom:4px}
+.upload-zone small{font-size:11px;color:var(--t4)}
+.upload-mode-tabs{display:flex;gap:8px;margin-bottom:16px}
+.umt{flex:1;padding:12px;border:2px solid var(--border);border-radius:var(--r2);cursor:pointer;text-align:center;transition:all .15s}
+.umt:hover{border-color:var(--blue)}
+.umt.active{border-color:var(--blue);background:var(--blue-bg)}
+.umt-title{font-size:13px;font-weight:600;margin-bottom:3px}
+.umt-desc{font-size:11px;color:var(--t3)}
+.umt.active .umt-title{color:var(--blue-t)}
+.umt.active .umt-desc{color:var(--blue-t)}
+.validation-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden;margin-bottom:16px}
+.vp-header{padding:12px 16px;background:var(--s2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.vp-body{padding:14px 16px}
+.vp-row{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--s2);font-size:12px}
+.vp-row:last-child{border-bottom:none}
+.vp-status{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.vp-ok{background:var(--green-bg)}
+.vp-ok svg{width:11px;height:11px;color:var(--green-t)}
+.vp-warn{background:var(--orange-bg)}
+.vp-warn svg{width:11px;height:11px;color:var(--orange-t)}
+.vp-err{background:var(--red-bg)}
+.vp-err svg{width:11px;height:11px;color:var(--red-t)}
+.vp-label{flex:1;color:var(--text)}
+.vp-detail{font-size:11px;color:var(--t3)}
+.conflict-list{display:flex;flex-direction:column;gap:8px}
+.conflict-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);padding:14px 16px;display:flex;gap:12px}
+.ci-icon{width:36px;height:36px;border-radius:var(--r);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ci-icon.warn{background:var(--orange-bg)}
+.ci-icon.err{background:var(--red-bg)}
+.ci-icon svg{width:18px;height:18px}
+.ci-body{flex:1}
+.ci-title{font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px}
+.ci-desc{font-size:11px;color:var(--t3);line-height:1.5;margin-bottom:8px}
+.ci-actions{display:flex;gap:6px}
+.ci-btn{padding:4px 12px;font-size:11px;font-family:var(--font);background:var(--s2);border:1px solid var(--border2);border-radius:5px;cursor:pointer;color:var(--t2);font-weight:500}
+.ci-btn:hover{border-color:var(--blue);color:var(--blue)}
+.ci-btn.pri{background:var(--blue);color:#fff;border-color:var(--blue)}
+.severity-tag{font-size:10px;padding:2px 7px;border-radius:8px;font-weight:500}
+.sev-high{background:var(--red-bg);color:var(--red-t)}
+.sev-med{background:var(--orange-bg);color:var(--orange-t)}
+.sev-low{background:var(--s3);color:var(--t2)}
+.timeline{position:relative;padding-left:20px}
+.timeline::before{content:'';position:absolute;left:7px;top:4px;bottom:4px;width:1px;background:var(--border)}
+.tl-item{position:relative;padding:0 0 16px 16px}
+.tl-item:last-child{padding-bottom:0}
+.tl-dot{position:absolute;left:-13px;top:3px;width:10px;height:10px;border-radius:50%;border:2px solid var(--surface)}
+.tl-dot.approve{background:var(--green)}.tl-dot.reject{background:var(--red)}.tl-dot.edit{background:var(--blue)}.tl-dot.upload{background:var(--orange)}.tl-dot.request{background:var(--purple)}
+.tl-header{display:flex;align-items:center;gap:8px;margin-bottom:3px}
+.tl-action{font-size:11px;font-weight:600;color:var(--text)}
+.tl-time{font-size:10px;color:var(--t3);margin-left:auto}
+.tl-user{font-size:11px;color:var(--t2)}
+.tl-detail{font-size:11px;color:var(--t3);margin-top:2px}
+.tl-ba{display:flex;gap:8px;margin-top:5px}
+.tl-b,.tl-a{font-size:10px;padding:3px 8px;border-radius:5px}
+.tl-b{background:var(--red-bg);color:var(--red-t)}.tl-a{background:var(--green-bg);color:var(--green-t)}
+.toast{position:absolute;bottom:16px;right:16px;border-radius:var(--r);padding:10px 16px;font-size:12px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:999;max-width:300px;font-weight:500}
+.toast.show{opacity:1}
+.toast.success{background:#1a7a3c;color:#fff}.toast.info{background:var(--blue);color:#fff}.toast.warn{background:var(--orange-t);color:#fff}
+.two-col{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:16px}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);padding:16px}
+.panel-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+.col-scheme{font-family:monospace;font-size:11px;color:var(--text);background:var(--s2);border-radius:var(--r);padding:12px;line-height:2}
+.col-req{color:var(--red-t);font-weight:600}.col-opt{color:var(--blue-t)}
+.progress-bar{height:8px;background:var(--s3);border-radius:4px;overflow:hidden;margin-top:6px}
+.pb-fill{height:100%;border-radius:4px;transition:width .3s}
+
+/* ===== OVERRIDES ===== */
+.page{display:none}.page.active{display:block}
+.view{display:none}.view.active{display:block}
+#page-requests{height:calc(100vh - 52px);display:none;flex-direction:column}
+#page-requests.active{display:flex}
+#page-audit-admin{height:calc(100vh - 52px);display:none;flex-direction:column}
+#page-audit-admin.active{display:flex}
+.app-body-inner{flex:1;display:flex;overflow:hidden;min-width:0}
+
+/* ── Scrollable sidebar nav ─────────────────────────────────── */
+.sb-nav{flex:1;overflow-y:auto;overflow-x:hidden}
+.sb-nav::-webkit-scrollbar{width:3px}
+.sb-nav::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+.sb-nav::-webkit-scrollbar-track{background:transparent}
+.sf{flex-shrink:0;padding:12px 14px;border-top:1px solid var(--border)}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="logo">
+    <div class="logo-icon"><svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="5.5" stroke="var(--blue)" stroke-width="1.4"/><path d="M4 8Q6 5.5 8 8Q10 10.5 12 8" stroke="var(--blue)" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg></div>
+    TerritoryAlign
+  </div>
+  <span class="ver-badge" id="current-ver-badge">v1.0</span>
+  <div class="tsep"></div>
+  <div class="role-pill" id="role-pill">
+    <span class="rdot" id="rdot"></span>
+    <span id="rlabel">NSD</span>
+  </div>
+  <button class="tbtn" onclick="openPage('exports',null)">
+    <svg viewBox="0 0 16 16" fill="none" width="12" height="12"><path d="M8 3v8M5 8l3 3 3-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M2 13h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+    Export
+  </button>
+  <button class="tbtn pri" onclick="openPage('requests',null)">
+    <svg viewBox="0 0 16 16" fill="none" width="12" height="12"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+    New request
+  </button>
+</div>
+
+<div class="app-body">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sb-user">
+      <div class="av" id="sb-av"></div>
+      <div><div style="font-size:12px;font-weight:600" id="sb-name"></div><div style="font-size:10px;color:var(--t3)" id="sb-role"></div></div>
+    </div>
+    <div class="sb-nav">
+    <div class="ng">
+      <div class="nl">Overview</div>
+      <div class="ni active" id="nav-dashboard" onclick="openPage('dashboard',this)">
+        <svg viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.2"/><rect x="9" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.2"/><rect x="1" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.2"/><rect x="9" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.2"/></svg>
+        Dashboard
+      </div>
+      <div class="ni" id="nav-map" onclick="openPage('map',this)">
+        <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="7" r="4" stroke="currentColor" stroke-width="1.2"/><circle cx="8" cy="7" r="1.5" fill="currentColor"/></svg>
+        Map view
+      </div>
+    </div>
+    <div class="ng">
+      <div class="nl">Alignment</div>
+      <div class="ni" id="nav-territories" onclick="openPage('territories',this)">
+        <svg viewBox="0 0 16 16" fill="none"><path d="M2 4h12M2 8h8M2 12h10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        Territories
+      </div>
+      <div class="ni" id="nav-hcps" onclick="openPage('hcps',this)">
+        <svg viewBox="0 0 16 16" fill="none"><rect x="2" y="4" width="12" height="9" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M8 7v4M6 9h4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        HCPs &amp; ZIPs
+      </div>
+      <div class="ni" id="nav-roster" onclick="openPage('roster',this)">
+        <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="3" stroke="currentColor" stroke-width="1.2"/><path d="M2 14c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        Roster
+      </div>
+    </div>
+    <div class="ng">
+      <div class="nl">Workflow</div>
+      <div class="ni" id="nav-requests" onclick="openPage('requests',this)">
+        <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.2"/><path d="M5.5 8l2 2 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Requests
+        <span class="nbadge" id="req-badge">0</span>
+      </div>
+      <div class="ni" id="nav-audit" onclick="openPage('audit',this)">
+        <svg viewBox="0 0 16 16" fill="none"><rect x="3" y="2" width="10" height="12" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M5.5 6h5M5.5 9h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        Audit log
+      </div>
+    </div>
+    <div class="ng" id="admin-nav">
+      <div class="nl">Admin</div>
+      <div class="ni" id="nav-upload" onclick="openPage('upload',this)">
+        <svg viewBox="0 0 16 16" fill="none"><path d="M8 10V3M5 6l3-3 3 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 13h12" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        Bulk upload
+      </div>
+      <div class="ni" id="nav-versions" onclick="openPage('versions',this)">
+        <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.2"/><path d="M8 5v3l2 1.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        Versions
+      </div>
+      <div class="ni" id="nav-conflicts" onclick="openPage('conflicts',this)">
+        <svg viewBox="0 0 16 16" fill="none"><path d="M8 2L15 14H1L8 2z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M8 7v3M8 11.5v.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        Conflicts
+        <span style="margin-left:auto;font-size:10px;padding:1px 6px;border-radius:8px;background:var(--orange-bg);color:var(--orange-t);font-weight:600" id="conflict-badge">0</span>
+      </div>
+      <div class="ni" id="nav-exports" onclick="openPage('exports',this)">
+        <svg viewBox="0 0 16 16" fill="none"><path d="M8 3v8M5 8l3 3 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M2 13h12" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        Exports
+      </div>
+    </div>
+    </div><!-- /sb-nav -->
+    <div class="sf">
+      <button style="font-size:12px;color:var(--t3);cursor:pointer;background:none;border:none;font-family:var(--font);display:flex;align-items:center;gap:6px" id="logout-btn">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M6 14H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h3M11 11l3-3-3-3M14 8H6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Sign out
+      </button>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main" style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;height:100%">
+
+    <!-- DASHBOARD -->
+    <div id="page-dashboard" class="page active" style="overflow-y:auto;padding:24px;flex:1">
+      <div class="page-header">
+        <div><div class="page-title" id="dash-greeting">Good morning</div>
+        <div style="font-size:12px;color:var(--t3);margin-top:2px" id="dash-scope">Loading...</div></div>
+      </div>
+      <div class="metrics-row" id="dash-metrics"></div>
+      <div class="two-col">
+        <div class="panel">
+          <div class="panel-title">Territory performance
+            <div class="idx-tabs" id="dash-idx-tabs">
+              <button class="idx-tab active" onclick="setDashIdx(1,this)">Idx 1</button>
+              <button class="idx-tab" onclick="setDashIdx(2,this)">Idx 2</button>
+              <button class="idx-tab" onclick="setDashIdx(3,this)">Idx 3</button>
+              <button class="idx-tab" onclick="setDashIdx(4,this)">Idx 4</button>
+            </div>
+          </div>
+          <div class="idx-desc-bar" id="dash-idx-desc">Index 1: 25% ZIP Population + 75% Patient Start Forms</div>
+          <table class="t-table">
+            <thead><tr><th>Territory</th><th>OAM</th><th>HCPs</th><th>ZIPs</th><th>Score</th></tr></thead>
+            <tbody id="dash-terr-tbody"></tbody>
+          </table>
+        </div>
+        <div>
+          <div class="panel">
+            <div class="panel-title">Recent requests <span class="badge b-orange" id="pending-count">loading...</span></div>
+            <div id="dash-requests"><div style="font-size:11px;color:var(--t3);text-align:center;padding:20px">Loading...</div></div>
+          </div>
+          <div class="panel">
+            <div class="panel-title">Active conflicts</div>
+            <div id="dash-conflicts"><div style="font-size:11px;color:var(--t3);text-align:center;padding:20px">Loading...</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAP -->
+    <div id="page-map" class="page" style="flex:1;display:none;flex-direction:column">
+      <div style="padding:12px 20px;background:var(--surface);border-bottom:1px solid var(--border);font-size:13px;font-weight:600">Map view</div>
+      <iframe src="/pharma_tat_phase2_map.html" style="flex:1;border:none;width:100%;height:100%" id="map-iframe"></iframe>
+    </div>
+
+    <!-- TERRITORIES -->
+    <div id="page-territories" class="page" style="overflow-y:auto;padding:20px;flex:1">
+      <div class="page-header">
+        <div class="page-title">Territory alignment</div>
+        <div style="display:flex;gap:8px">
+          <input id="terr-search-p" placeholder="Search territory or rep..." style="font-size:12px;padding:7px 11px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:var(--font);outline:none;width:220px" oninput="renderTerrPage()">
+          <select id="terr-dist-p" style="font-size:12px;padding:7px 11px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:var(--font)" onchange="renderTerrPage()">
+            <option value="">All districts</option>
+            <option>NORTHEAST</option><option>SOUTHEAST</option><option>NORTH CENTRAL</option><option>SOUTH CENTRAL</option><option>WEST</option>
+          </select>
+        </div>
+      </div>
+      <div class="idx-tabs" id="terr-idx-tabs">
+        <button class="idx-tab active" onclick="setTerrIdx(1,this)">Index 1</button>
+        <button class="idx-tab" onclick="setTerrIdx(2,this)">Index 2</button>
+        <button class="idx-tab" onclick="setTerrIdx(3,this)">Index 3</button>
+        <button class="idx-tab" onclick="setTerrIdx(4,this)">Index 4</button>
+      </div>
+      <div class="idx-desc-bar" id="terr-idx-desc">Index 1: 25% ZIP Population + 75% Patient Start Forms</div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden">
+        <table class="t-table">
+          <thead><tr><th style="width:4%"></th><th style="width:22%">Territory</th><th style="width:14%">District</th><th style="width:16%">OAM</th><th style="width:8%">HCPs</th><th style="width:8%">ZIPs</th><th style="width:22%">Index score</th><th style="width:6%"></th></tr></thead>
+          <tbody id="terr-page-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- HCPs -->
+    <div id="page-hcps" class="page" style="overflow-y:auto;padding:20px;flex:1">
+      <div class="page-header">
+        <div class="page-title">HCPs &amp; ZIP mappings</div>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+        <input id="hcp-search-p" placeholder="Search HCP ID, city, ZIP..." style="font-size:12px;padding:7px 11px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:var(--font);outline:none;flex:1;min-width:160px" oninput="renderHCPPage()">
+        <select id="hcp-terr-p" style="font-size:12px;padding:7px 11px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:var(--font)" onchange="renderHCPPage()">
+          <option value="">All territories</option>
+        </select>
+        <select id="hcp-tier-p" style="font-size:12px;padding:7px 11px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:var(--font)" onchange="renderHCPPage()">
+          <option value="">All tiers</option><option>Tier 1</option><option>Tier 2</option><option>Tier 3</option><option>Tier 4</option>
+        </select>
+        <span id="hcp-count-label" style="font-size:11px;color:var(--t3);align-self:center"></span>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden">
+        <table class="t-table">
+          <thead><tr><th>HCP ID</th><th>City / State</th><th>ZIP</th><th>Territory</th><th>Tier</th><th>Index 3</th><th>Actions</th></tr></thead>
+          <tbody id="hcp-page-tbody"></tbody>
+        </table>
+      </div>
+      <div id="hcp-pagination" style="display:flex;justify-content:space-between;padding:10px 0;font-size:11px;color:var(--t3)"></div>
+    </div>
+
+    <!-- ROSTER -->
+    <div id="page-roster" class="page" style="overflow-y:auto;padding:20px;flex:1">
+      <div class="page-header"><div class="page-title">Roster</div></div>
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <input id="roster-search-p" placeholder="Search by name or ID..." style="font-size:12px;padding:7px 11px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:var(--font);outline:none;flex:1" oninput="renderRosterPage()">
+        <select id="roster-role-p" style="font-size:12px;padding:7px 11px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:var(--font)" onchange="renderRosterPage()">
+          <option value="">All roles</option><option value="NSD">NSD</option><option value="DM">DM</option><option value="OAM">OAM</option>
+        </select>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden">
+        <table class="t-table">
+          <thead><tr><th>ID</th><th>Name</th><th>Role</th><th>Territory / District</th><th>Status</th></tr></thead>
+          <tbody id="roster-page-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- REQUESTS -->
+    <div id="page-requests" class="page" style="flex:1;display:none;flex-direction:column;overflow:hidden">
+      <div class="status-bar">
+      <button class="stab active" onclick="filterStatus('all',this)">All requests <span class="stab-count" id="sc-all">0</span></button>
+      <button class="stab" onclick="filterStatus('Pending',this)">Pending <span class="stab-count red" id="sc-pending">0</span></button>
+      <button class="stab" onclick="filterStatus('DM Review',this)">DM review <span class="stab-count" id="sc-dm">0</span></button>
+      <button class="stab" onclick="filterStatus('Approved',this)">Approved <span class="stab-count" id="sc-approved">0</span></button>
+      <button class="stab" onclick="filterStatus('Rejected',this)">Rejected <span class="stab-count" id="sc-rejected">0</span></button>
+      <div class="status-bar-sep"></div>
+      <select style="font-size:11px;padding:5px 9px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:var(--font);margin:6px 0" id="type-filter" onchange="renderList()">
+        <option value="">All types</option>
+        <option>Change HCP territory</option>
+        <option>Add HCP</option>
+        <option>Remove HCP</option>
+        <option>Reassign ZIP</option>
+        <option>Reassign OAM</option>
+      </select>
+    </div>
+
+    <!-- CONTENT SPLIT -->
+    <div class="content">
+
+      <!-- LEFT: REQUEST LIST -->
+      <div class="req-list-pane">
+        <div class="req-list-header">
+          <input class="req-list-search" placeholder="Search requests..." id="req-search" oninput="renderList()">
+        </div>
+        <div id="req-list"></div>
+      </div>
+
+      <!-- RIGHT: DETAIL / NEW REQUEST -->
+      <div class="req-detail-pane" id="req-detail-pane">
+        <div class="detail-empty" id="detail-empty">
+          <svg viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="20" stroke="currentColor" stroke-width="1.5"/><path d="M16 24l6 6 10-10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <p>Select a request to review</p>
+        </div>
+        <div id="detail-view" style="display:none;height:100%;display:none;flex-direction:column">
+          <div style="flex:1;overflow-y:auto" id="detail-scroll"></div>
+          <div class="action-footer" id="action-footer"></div>
+        </div>
+        <div id="new-req-view" style="display:none;height:100%;overflow-y:auto"></div>
+      </div>
+    </div>
+  </div>
+</div>
+    </div>
+
+    <!-- AUDIT LOG -->
+    <div id="page-audit" class="page" style="overflow-y:auto;overflow-x:hidden;padding:20px;flex:1;min-width:0">
+      <div class="page-header">
+        <div class="page-title">Audit log</div>
+        <button class="tbtn" onclick="exportAuditLog()">
+          <svg viewBox="0 0 16 16" fill="none" width="12" height="12"><path d="M8 3v8M5 8l3 3 3-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M2 13h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+          Export CSV
+        </button>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden">
+        <table class="t-table" style="table-layout:fixed;width:100%">
+          <thead><tr><th style="width:140px;min-width:140px">Timestamp</th><th style="width:130px">User</th><th style="width:60px">Role</th><th style="width:120px">Action</th><th>Detail</th><th style="width:80px">Before</th><th style="width:80px">After</th></tr></thead>
+          <tbody id="audit-page-tbody"><tr><td colspan="7" style="text-align:center;padding:20px;color:var(--t3)">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- UPLOAD -->
+    <div id="page-upload" class="page" style="overflow-y:auto;padding:20px;flex:1">
+      <div class="page-header"><div class="page-title">Bulk upload</div></div>
+      <div style="max-width:600px">
+        <div class="panel">
+          <div class="panel-title">Upload mode</div>
+          <div style="display:flex;gap:8px;margin-bottom:14px">
+            <div id="mode-append" onclick="setUploadMode('append')" style="flex:1;padding:12px;border:2px solid var(--blue);border-radius:var(--r2);cursor:pointer;background:var(--blue-bg)">
+              <div style="font-size:13px;font-weight:600;color:var(--blue-t)">Append mode</div>
+              <div style="font-size:11px;color:var(--blue-t)">Add new mappings without overwriting existing</div>
+            </div>
+            <div id="mode-replace" onclick="setUploadMode('replace')" style="flex:1;padding:12px;border:2px solid var(--border);border-radius:var(--r2);cursor:pointer">
+              <div style="font-size:13px;font-weight:600">Replace mode</div>
+              <div style="font-size:11px;color:var(--t3)">Overwrite entire alignment with file contents</div>
+            </div>
+          </div>
+          <div style="border:2px dashed var(--border2);border-radius:var(--r2);padding:40px 20px;text-align:center;cursor:pointer;margin-bottom:14px" onclick="document.getElementById('upload-file-input').click()">
+            <input type="file" id="upload-file-input" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleFileUpload(this)">
+            <svg width="40" height="40" viewBox="0 0 40 40" fill="none" style="margin:0 auto 12px;display:block"><path d="M20 26V14M15 19l5-5 5 5" stroke="var(--t3)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><rect x="4" y="28" width="32" height="8" rx="3" stroke="var(--t3)" stroke-width="1.5"/></svg>
+            <p style="font-size:13px;color:var(--t2);margin-bottom:4px">Click to select your Excel or CSV file</p>
+            <small style="font-size:11px;color:var(--t4)">Accepts .xlsx, .xls, .csv</small>
+          </div>
+          <div id="upload-status" style="display:none;padding:10px;background:var(--green-bg);border-radius:var(--r);font-size:12px;color:var(--green-t)"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VERSIONS -->
+    <div id="page-versions" class="page" style="overflow-y:auto;padding:20px;flex:1">
+      <div class="page-header">
+        <div><div class="page-title">Alignment versions</div><div style="font-size:12px;color:var(--t3);margin-top:2px">Full history of alignment uploads. Rollback to any previous version.</div></div>
+        <button class="tbtn" onclick="exportVersionList()"><svg viewBox="0 0 16 16" fill="none" width="12" height="12"><path d="M8 3v8M5 8l3 3 3-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M2 13h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>Export</button>
+      </div>
+      <div class="metrics-row" id="ver-metrics"></div>
+      <div id="versions-list"></div>
+    </div>
+
+    <!-- CONFLICTS -->
+    <div id="page-conflicts" class="page" style="overflow-y:auto;padding:20px;flex:1">
+      <div class="page-header"><div class="page-title">Conflict report</div></div>
+      <div class="metrics-row" id="conflict-metrics"></div>
+      <div id="conflicts-page-body"></div>
+    </div>
+
+    <!-- EXPORTS -->
+    <div id="page-exports" class="page" style="overflow-y:auto;padding:20px;flex:1">
+      <div class="page-header"><div class="page-title">Exports &amp; downloads</div></div>
+      <div id="export-page-body"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ROLLBACK MODAL -->
+<div class="modal-bd" id="rollback-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:500;align-items:center;justify-content:center">
+  <div style="background:var(--surface);border-radius:var(--r2);width:480px;padding:22px">
+    <div style="font-size:15px;font-weight:600;margin-bottom:4px">Rollback alignment</div>
+    <div style="font-size:12px;color:var(--t3);margin-bottom:16px" id="rollback-sub">Restore to a previous version</div>
+    <div style="background:var(--red-bg);border:1px solid var(--red);border-radius:var(--r);padding:12px;margin-bottom:16px;font-size:11px;color:var(--red-t)">
+      <strong style="display:block;margin-bottom:4px">This action cannot be undone without another rollback</strong>
+      Rolling back will replace the current alignment with the selected version.
+    </div>
+    <div style="margin-bottom:12px"><label style="font-size:10px;font-weight:600;color:var(--t3);display:block;margin-bottom:4px;text-transform:uppercase">Reason (required)</label>
+    <textarea id="rollback-reason" placeholder="Why are you rolling back?" style="width:100%;font-size:12px;padding:8px;border:1px solid var(--border2);border-radius:var(--r);font-family:var(--font);min-height:72px;outline:none"></textarea></div>
+    <div style="margin-bottom:12px"><label style="font-size:10px;font-weight:600;color:var(--t3);display:block;margin-bottom:4px;text-transform:uppercase">Type version ID to confirm</label>
+    <input id="rollback-confirm" placeholder="e.g. v1.0" style="width:100%;font-size:12px;padding:8px;border:1px solid var(--border2);border-radius:var(--r);font-family:var(--font);outline:none"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button style="padding:8px 16px;font-size:12px;font-family:var(--font);background:var(--s2);border:1px solid var(--border2);border-radius:var(--r);cursor:pointer" onclick="document.getElementById('rollback-modal').style.display='none'">Cancel</button>
+      <button style="padding:8px 16px;font-size:12px;font-weight:600;font-family:var(--font);background:var(--red-t);color:#fff;border:none;border-radius:var(--r);cursor:pointer" onclick="confirmRollback()">Rollback</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/**
+ * TerritoryAlign — API Client
+ * Automatically detects whether running locally (Docker) or on Render.
+ */
+
+// On Render, the frontend static site proxies /api to the backend.
+// Locally, nginx also proxies /api to the backend.
+// So /api always works regardless of environment.
+const API_BASE = 'https://territory-align-api.onrender.com/api';
+
+const Auth = {
+  getToken:   ()  => localStorage.getItem('ta_token'),
+  getUser:    ()  => JSON.parse(localStorage.getItem('ta_user') || 'null'),
+  setToken:   (t) => localStorage.setItem('ta_token', t),
+  setUser:    (u) => localStorage.setItem('ta_user', JSON.stringify(u)),
+  clear:      ()  => { localStorage.removeItem('ta_token'); localStorage.removeItem('ta_user'); },
+  isLoggedIn: ()  => !!localStorage.getItem('ta_token'),
+};
+
+async function apiFetch(path, options = {}) {
+  const token = Auth.getToken();
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(options.headers || {}),
+  };
+  if (options.body instanceof FormData) delete headers['Content-Type'];
+
+  const res = await fetch(API_BASE + path, { ...options, headers });
+
+  if (res.status === 401) {
+    Auth.clear();
+    window.location.href = '/login.html';
+    return;
+  }
+
+  const contentType = res.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    return data;
+  }
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res;
+}
+
+const api = {
+  auth: {
+    async login(personnel_id, password) {
+      const data = await apiFetch('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ personnel_id, password }),
+      });
+      Auth.setToken(data.token);
+      Auth.setUser(data.user);
+      return data.user;
+    },
+    async me()     { return apiFetch('/auth/me'); },
+    async logout() { await apiFetch('/auth/logout', { method: 'POST' }); Auth.clear(); },
+  },
+
+  territories: {
+    list(p = {})   { return apiFetch('/territories?' + new URLSearchParams(p)); },
+    get(id)        { return apiFetch(`/territories/${id}`); },
+    getHCPs(id, p) { return apiFetch(`/territories/${id}/hcps?` + new URLSearchParams(p)); },
+    getZIPs(id, p) { return apiFetch(`/territories/${id}/zips?` + new URLSearchParams(p)); },
+    update(id, b)  { return apiFetch(`/territories/${id}`, { method:'PUT', body:JSON.stringify(b) }); },
+  },
+
+  hcps: {
+    list(p = {})            { return apiFetch('/hcps?' + new URLSearchParams(p)); },
+    get(hcp_id)             { return apiFetch(`/hcps/${hcp_id}`); },
+    reassign(hcp_id, terr)  { return apiFetch(`/hcps/${hcp_id}/territory`, { method:'PUT', body:JSON.stringify({new_territory_name:terr}) }); },
+  },
+
+  zips: {
+    list(p = {})     { return apiFetch('/zips?' + new URLSearchParams(p)); },
+    conflicts()      { return apiFetch('/zips/conflicts'); },
+    reassign(c, t)   { return apiFetch(`/zips/${c}/territory`, { method:'PUT', body:JSON.stringify({new_territory_name:t}) }); },
+  },
+
+  requests: {
+    list(p = {})     { return apiFetch('/requests?' + new URLSearchParams(p)); },
+    get(id)          { return apiFetch(`/requests/${id}`); },
+    create(body)     { return apiFetch('/requests', { method:'POST', body:JSON.stringify(body) }); },
+    approve(id)      { return apiFetch(`/requests/${id}/approve`, { method:'PUT' }); },
+    reject(id, r)    { return apiFetch(`/requests/${id}/reject`, { method:'PUT', body:JSON.stringify({rejection_reason:r}) }); },
+    comment(id, c)   { return apiFetch(`/requests/${id}/comment`, { method:'POST', body:JSON.stringify({comment:c}) }); },
+  },
+
+  audit: {
+    list(p = {})  { return apiFetch('/audit?' + new URLSearchParams(p)); },
+    exportCSV()   { return apiFetch('/export/audit'); },
+  },
+
+  versions: {
+    list()             { return apiFetch('/versions'); },
+    rollback(l, r)     { return apiFetch(`/versions/${l}/rollback`, { method:'POST', body:JSON.stringify({reason:r}) }); },
+  },
+
+  roster: {
+    list(p = {})  { return apiFetch('/roster?' + new URLSearchParams(p)); },
+  },
+
+  conflicts: {
+    list()  { return apiFetch('/conflicts'); },
+  },
+
+  exports: {
+    async downloadCSV(endpoint, filename) {
+      const res  = await apiFetch(endpoint);
+      const blob = await res.blob();
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href = url; a.download = filename; a.click();
+      URL.revokeObjectURL(url);
+    },
+    ztt()         { return api.exports.downloadCSV('/export/ztt',         `ZTT_${Date.now()}.csv`); },
+    audit()       { return api.exports.downloadCSV('/export/audit',       `audit_${Date.now()}.csv`); },
+    territories() { return api.exports.downloadCSV('/export/territories', `territories_${Date.now()}.csv`); },
+  },
+
+  upload: {
+    async file(file, mode = 'append') {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('mode', mode);
+      return apiFetch('/upload', { method: 'POST', body: fd });
+    },
+  },
+};
+
+function requireAuth() {
+  if (!Auth.isLoggedIn()) {
+    window.location.href = '/login.html';
+    return false;
+  }
+  return true;
+}
+
+window.api  = api;
+window.Auth = Auth;
+window.requireAuth = requireAuth;
+
+</script>
+<script>
+// ===== SHARED DATA =====
+const IDX_DESCS = ['','25% ZIP Pop + 75% Start Forms','50% Prevalence + 50% Start Forms','100% Patient Start Forms','100% Completed Start Forms'];
+let TERRITORIES_DATA = [];
+let REQUESTS_DATA = [];
+let AUDIT_DATA = [];
+let VERSIONS_DATA = [];
+let CONFLICTS_DATA = [];
+let ROSTER_DATA = [];
+let HCP_DATA = [];
+let currentRole = 'nsd';
+let dashIdx = 1;
+let terrIdx = 1;
+let hcpPage = 0;
+const PAGE_SIZE = 20;
+let rollbackTarget = null;
+let uploadMode = 'append';
+
+// ===== ROLE SETUP =====
+function applyRole() {
+  const user = window.Auth ? Auth.getUser() : null;
+  if (user) {
+    document.getElementById('sb-av').textContent = user.name.split(' ').map(w=>w[0]).slice(0,2).join('');
+    document.getElementById('sb-av').className = 'av ' + (user.role==='NSD'?'av-nsd':user.role==='DM'?'av-dm':'av-oam');
+    document.getElementById('sb-name').textContent = user.name + ' (' + user.personnel_id + ')';
+    document.getElementById('sb-role').textContent = user.role + ' — ' + (user.territory_name || user.district_name || 'NATION');
+    document.getElementById('rdot').className = 'rdot ' + user.role.toLowerCase();
+    document.getElementById('rlabel').textContent = user.role;
+    currentRole = user.role.toLowerCase();
+    document.getElementById('admin-nav').style.display = user.role === 'NSD' ? '' : 'none';
+  }
+}
+
+// ===== NAVIGATION =====
+function openPage(page, el) {
+  document.querySelectorAll('.page').forEach(p => { p.classList.remove('active'); p.style.display='none'; });
+  document.querySelectorAll('.ni').forEach(n => n.classList.remove('active'));
+  
+  const pageEl = document.getElementById('page-' + page);
+  if (pageEl) {
+    pageEl.classList.add('active');
+    if (page === 'requests') { pageEl.style.display = 'flex'; }
+    else if (page === 'map') { pageEl.style.display = 'flex'; }
+    else { pageEl.style.display = 'block'; }
+  }
+  
+  const navEl = el || document.getElementById('nav-' + page);
+  if (navEl) navEl.classList.add('active');
+  
+  // Load data for the page
+  if (page === 'dashboard') loadDashboard();
+  else if (page === 'territories') renderTerrPage();
+  else if (page === 'hcps') loadHCPs();
+  else if (page === 'roster') loadRoster();
+  else if (page === 'requests') { loadRequests(); }
+  else if (page === 'audit') loadAudit();
+  else if (page === 'versions') loadVersions();
+  else if (page === 'conflicts') loadConflicts();
+  else if (page === 'exports') renderExportPage();
+}
+
+// ===== DASHBOARD =====
+async function loadDashboard() {
+  try {
+    const [terrRes, reqRes, conflictRes] = await Promise.all([
+      api.territories.list({ limit: 50 }),
+      api.requests.list({ limit: 10 }),
+      api.conflicts.list()
+    ]);
+    TERRITORIES_DATA = terrRes || [];
+    REQUESTS_DATA = (reqRes && reqRes.requests) ? reqRes.requests : [];
+    CONFLICTS_DATA = conflictRes || [];
+    renderDashboard();
+  } catch(e) {
+    showToast('Error loading dashboard: ' + e.message, 'warn');
+  }
+}
+
+function renderDashboard() {
+  const user = Auth ? Auth.getUser() : null;
+  const hour = new Date().getHours();
+  const greet = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+  document.getElementById('dash-greeting').textContent = greet + (user ? ', ' + user.name.split(' ')[0] : '');
+  
+  const totalHCPs = TERRITORIES_DATA.reduce((s,t) => s + (parseInt(t.hco_count)||0), 0);
+  const pending = REQUESTS_DATA.filter(r => r.status === 'pending').length;
+  const vacants = TERRITORIES_DATA.filter(t => !t.rep_name || t.rep_name.startsWith('Vacant')).length;
+  
+  document.getElementById('dash-scope').textContent = TERRITORIES_DATA.length + ' territories · ' + totalHCPs.toLocaleString() + ' HCPs · ' + CONFLICTS_DATA.length + ' conflicts';
+  document.getElementById('req-badge').textContent = pending;
+  document.getElementById('pending-count').textContent = pending + ' pending';
+  document.getElementById('conflict-badge').textContent = CONFLICTS_DATA.filter(c=>!c.is_dismissed).length;
+  
+  document.getElementById('dash-metrics').innerHTML = `
+    <div class="mc"><div class="mc-label">Territories</div><div class="mc-val">${TERRITORIES_DATA.length}</div><div class="mc-sub">5 districts</div></div>
+    <div class="mc"><div class="mc-label">Total HCPs</div><div class="mc-val">${totalHCPs.toLocaleString()}</div><div class="mc-sub up">Across all territories</div></div>
+    <div class="mc"><div class="mc-label">Pending requests</div><div class="mc-val" style="color:var(--orange-t)">${pending}</div><div class="mc-sub warn">Awaiting approval</div></div>
+    <div class="mc"><div class="mc-label">Vacant territories</div><div class="mc-val" style="color:var(--red-t)">${vacants}</div><div class="mc-sub dn">Need OAM assigned</div></div>`;
+  
+  const maxVal = Math.max(...TERRITORIES_DATA.map(t => parseFloat(t['idx'+dashIdx])||0));
+  const sorted = [...TERRITORIES_DATA].sort((a,b) => (parseFloat(b['idx'+dashIdx])||0) - (parseFloat(a['idx'+dashIdx])||0));
+  
+  document.getElementById('dash-terr-tbody').innerHTML = sorted.slice(0,10).map(t => {
+    const v = parseFloat(t['idx'+dashIdx])||0;
+    const pct = maxVal > 0 ? Math.round(v/maxVal*100) : 0;
+    const isVac = !t.rep_name || t.rep_name.startsWith('Vacant');
+    return `<tr>
+      <td><span class="t-dot" style="background:${t.color||'#888'}"></span>${t.name}</td>
+      <td style="font-size:11px;color:${isVac?'var(--orange-t)':'var(--t3)'}">${isVac?'Vacant':t.rep_name}</td>
+      <td>${t.hco_count||0}</td>
+      <td>${parseInt(t.zip_count||0).toLocaleString()}</td>
+      <td><div class="bar-wrap"><div class="bar-bg"><div class="bar-fill" style="width:${pct}%;background:${t.color||'#888'}"></div></div><span style="font-size:11px;color:var(--t3);min-width:44px">${v.toFixed(1)}</span></div></td>
+    </tr>`;
+  }).join('');
+  
+  const statColors = {pending:'b-orange',approved:'b-green',rejected:'b-red'};
+  document.getElementById('dash-requests').innerHTML = REQUESTS_DATA.slice(0,5).map(r => `
+    <div style="display:flex;align-items:flex-start;gap:9px;padding:7px 0;border-bottom:1px solid var(--border)">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:11px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.type} — ${r.src_territory||''}</div>
+        <div style="font-size:10px;color:var(--t3)">${r.requester_name||''} · ${new Date(r.created_at).toLocaleDateString()}</div>
+      </div>
+      <span class="badge ${statColors[r.status]||'b-gray'}">${r.status}</span>
+    </div>`).join('') || '<div style="font-size:11px;color:var(--t3);text-align:center;padding:16px">No requests yet</div>';
+  
+  document.getElementById('dash-conflicts').innerHTML = CONFLICTS_DATA.filter(c=>!c.is_dismissed).slice(0,3).map(c => `
+    <div style="display:flex;align-items:flex-start;gap:9px;padding:7px 0;border-bottom:1px solid var(--border)">
+      <div style="flex:1">
+        <div style="font-size:11px;font-weight:500">${c.title}</div>
+        <div style="font-size:10px;color:var(--t3)">${c.description||''}</div>
+      </div>
+      <span class="badge ${c.severity==='high'?'b-red':c.severity==='med'?'b-orange':'b-gray'}">${c.severity}</span>
+    </div>`).join('') || '<div style="font-size:11px;color:var(--green-t);text-align:center;padding:16px">No active conflicts</div>';
+}
+
+function setDashIdx(n, btn) {
+  dashIdx = n;
+  document.querySelectorAll('#dash-idx-tabs .idx-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('dash-idx-desc').textContent = 'Index ' + n + ': ' + IDX_DESCS[n];
+  renderDashboard();
+}
+
+// ===== TERRITORIES PAGE =====
+function renderTerrPage() {
+  if (!TERRITORIES_DATA.length) {
+    api.territories.list({limit:50}).then(data => { TERRITORIES_DATA = data||[]; renderTerrPage(); }).catch(()=>{});
+    return;
+  }
+  const q = (document.getElementById('terr-search-p')?.value||'').toLowerCase();
+  const dist = document.getElementById('terr-dist-p')?.value||'';
+  let terrs = TERRITORIES_DATA.filter(t => {
+    if (dist && t.district !== dist) return false;
+    if (q && !t.name.toLowerCase().includes(q) && !(t.rep_name||'').toLowerCase().includes(q)) return false;
+    return true;
+  });
+  const maxVal = Math.max(...terrs.map(t=>parseFloat(t['idx'+terrIdx])||0));
+  const tbody = document.getElementById('terr-page-tbody');
+  if (!tbody) return;
+  const isVac = t => !t.rep_name || t.rep_name.startsWith('Vacant');
+  tbody.innerHTML = terrs.sort((a,b)=>(parseFloat(b['idx'+terrIdx])||0)-(parseFloat(a['idx'+terrIdx])||0)).map(t => {
+    const v = parseFloat(t['idx'+terrIdx])||0;
+    return `<tr>
+      <td><span class="t-dot" style="background:${t.color||'#888'}${isVac(t)?';outline:2px solid var(--orange);outline-offset:1px':''}"></span></td>
+      <td style="font-weight:500">${t.name}</td>
+      <td><span class="badge b-gray">${t.district}</span></td>
+      <td style="font-size:11px;color:${isVac(t)?'var(--orange-t)':''}">${isVac(t)?'<strong>Vacant</strong>':t.rep_name||'—'}</td>
+      <td>${t.hco_count||0}</td>
+      <td>${parseInt(t.zip_count||0).toLocaleString()}</td>
+      <td><div class="bar-wrap"><div class="bar-bg"><div class="bar-fill" style="width:${maxVal>0?Math.round(v/maxVal*100):0}%;background:${t.color||'#888'}"></div></div><span style="font-size:11px;color:var(--t3)">${v.toFixed(1)}</span></div></td>
+      <td><button style="padding:3px 9px;font-size:10px;font-family:var(--font);background:var(--s2);border:1px solid var(--border2);border-radius:5px;cursor:pointer;color:var(--t2)" onclick="openTerrDetail('${t.id}','${t.name.replace(/'/g,\\'\\')}')">View</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function setTerrIdx(n, btn) {
+  terrIdx = n;
+  document.querySelectorAll('#terr-idx-tabs .idx-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('terr-idx-desc').textContent = 'Index ' + n + ': ' + IDX_DESCS[n];
+  renderTerrPage();
+}
+
+// ===== HCPs PAGE =====
+async function loadHCPs() {
+  // Populate territory filter
+  const sel = document.getElementById('hcp-terr-p');
+  if (sel && sel.options.length === 1 && TERRITORIES_DATA.length) {
+    TERRITORIES_DATA.forEach(t => {
+      const o = document.createElement('option'); o.value=t.name; o.textContent=t.name; sel.appendChild(o);
+    });
+  }
+  renderHCPPage();
+}
+
+async function renderHCPPage() {
+  const q = document.getElementById('hcp-search-p')?.value||'';
+  const terr = document.getElementById('hcp-terr-p')?.value||'';
+  const tier = document.getElementById('hcp-tier-p')?.value||'';
+  try {
+    const data = await api.hcps.list({ search:q, territory:terr, tier:tier, limit:PAGE_SIZE, offset:hcpPage*PAGE_SIZE });
+    const hcps = data?.hcps || [];
+    const total = data?.total || 0;
+    document.getElementById('hcp-count-label').textContent = total.toLocaleString() + ' HCPs';
+    const tbody = document.getElementById('hcp-page-tbody');
+    if (tbody) {
+      tbody.innerHTML = hcps.map(h => `<tr>
+        <td style="font-family:monospace;font-size:10px;color:var(--t3)">${h.hcp_id}</td>
+        <td>${h.city||''}, ${h.state||''}</td>
+        <td style="font-family:monospace;font-size:10px">${h.zip||''}</td>
+        <td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${h.color||'#888'};margin-right:5px"></span>${h.territory||'—'}</td>
+        <td><span class="badge b-blue">${h.tier||'Tier 1'}</span></td>
+        <td style="font-weight:500">${parseFloat(h.idx3||0).toFixed(1)}</td>
+        <td><button style="padding:3px 9px;font-size:10px;font-family:var(--font);background:var(--s2);border:1px solid var(--border2);border-radius:5px;cursor:pointer;color:var(--t2)" onclick="showToast('${h.hcp_id} — ${h.city}, ${h.state} · ${h.tier} · Idx3: ${parseFloat(h.idx3||0).toFixed(1)}','info')">View</button></td>
+      </tr>`).join('') || '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--t3)">No HCPs found</td></tr>';
+    }
+    const pag = document.getElementById('hcp-pagination');
+    if (pag) {
+      const pages = Math.ceil(total/PAGE_SIZE);
+      pag.innerHTML = pages > 1 ? `<span>Page ${hcpPage+1} of ${pages}</span><div style="display:flex;gap:4px">
+        <button onclick="hcpPage=Math.max(0,hcpPage-1);renderHCPPage()" ${hcpPage===0?'disabled':''} style="padding:4px 10px;font-size:11px;font-family:var(--font);background:var(--surface);border:1px solid var(--border);border-radius:5px;cursor:pointer">Prev</button>
+        <button onclick="hcpPage=Math.min(${pages-1},hcpPage+1);renderHCPPage()" ${hcpPage===pages-1?'disabled':''} style="padding:4px 10px;font-size:11px;font-family:var(--font);background:var(--surface);border:1px solid var(--border);border-radius:5px;cursor:pointer">Next</button>
+      </div>` : '';
+    }
+  } catch(e) { showToast('Error loading HCPs: '+e.message,'warn'); }
+}
+
+// ===== ROSTER PAGE =====
+async function loadRoster() {
+  try {
+    const data = await api.roster.list({ limit:100 });
+    ROSTER_DATA = data || [];
+    renderRosterPage();
+  } catch(e) { showToast('Error loading roster','warn'); }
+}
+
+function renderRosterPage() {
+  const q = (document.getElementById('roster-search-p')?.value||'').toLowerCase();
+  const role = document.getElementById('roster-role-p')?.value||'';
+  const filtered = ROSTER_DATA.filter(r => {
+    if (role && r.role !== role) return false;
+    if (q && !r.name.toLowerCase().includes(q) && !r.personnel_id.toLowerCase().includes(q)) return false;
+    return true;
+  });
+  const ROLE_COLORS = {NSD:'b-red',DM:'b-orange',OAM:'b-blue'};
+  const tbody = document.getElementById('roster-page-tbody');
+  if (tbody) tbody.innerHTML = filtered.map(r => {
+    const isVac = r.name.startsWith('Vacant');
+    return `<tr>
+      <td style="font-family:monospace;font-size:11px;color:var(--t3)">${r.personnel_id}</td>
+      <td style="font-weight:${isVac?400:500};color:${isVac?'var(--orange-t)':''}">${r.name}</td>
+      <td><span class="badge ${ROLE_COLORS[r.role]||'b-gray'}">${r.role}</span></td>
+      <td style="font-size:11px">${r.territory||r.district||'—'}</td>
+      <td>${isVac?'<span class="badge b-orange">Vacant</span>':'<span class="badge b-green">Active</span>'}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--t3)">No results</td></tr>';
+}
+
+// ===== REQUESTS PAGE =====
+async function loadRequests() {
+  // Phase 4 JS handles this — just call its init if available
+  if (typeof initRequestsPage === 'function') {
+    initRequestsPage();
+  } else {
+    // Fallback: show requests in simple table
+    try {
+      const data = await api.requests.list({limit:50});
+      REQUESTS_DATA = data?.requests || [];
+      renderSimpleRequests();
+    } catch(e) {}
+  }
+}
+
+function renderSimpleRequests() {
+  const list = document.getElementById('req-list');
+  if (!list) return;
+  const statColors = {pending:'sp-pending',approved:'sp-approved',rejected:'sp-rejected','DM Review':'sp-review'};
+  list.innerHTML = REQUESTS_DATA.map(r => `
+    <div class="req-card ${selectedReqId===r.id?'active':''}" onclick="showReqDetail('${r.request_id}')">
+      <div class="req-card-top">
+        <span class="req-type-tag rt-change">${r.type}</span>
+        <span class="status-pip ${statColors[r.status]||'sp-pending'}"></span>
+      </div>
+      <div class="req-card-title">${r.src_territory||''}${r.dest_territory?' → '+r.dest_territory:''}</div>
+      <div class="req-card-meta">
+        <span>${r.request_id}</span>
+        <span class="req-card-meta-dot"></span>
+        <span>${r.requester_name||''}</span>
+        <span class="req-card-meta-dot"></span>
+        <span>${new Date(r.created_at).toLocaleDateString()}</span>
+      </div>
+    </div>`).join('') || '<div style="padding:20px;text-align:center;font-size:11px;color:var(--t3)">No requests yet.<br>Click "New request" to create one.</div>';
+  
+  // Update status counts
+  const counts = {all:REQUESTS_DATA.length, Pending:0, 'DM Review':0, Approved:0, Rejected:0};
+  REQUESTS_DATA.forEach(r => { if(counts[r.status]!==undefined) counts[r.status]++; });
+  Object.entries(counts).forEach(([k,v]) => {
+    const el = document.getElementById('sc-'+k.toLowerCase().replace(' ','-'));
+    if(el) el.textContent = v;
+  });
+  document.getElementById('req-badge').textContent = counts['Pending']||0;
+}
+
+let selectedReqId = null;
+async function showReqDetail(reqId) {
+  selectedReqId = reqId;
+  renderSimpleRequests();
+  try {
+    const r = await api.requests.get(reqId);
+    const detailScroll = document.getElementById('detail-scroll');
+    const detailView = document.getElementById('detail-view');
+    const detailEmpty = document.getElementById('detail-empty');
+    if (!detailScroll) return;
+    if (detailEmpty) detailEmpty.style.display = 'none';
+    if (detailView) { detailView.style.display = 'flex'; detailView.style.flexDirection = 'column'; }
+    
+    const canAct = (Auth.getUser()?.role === 'NSD' || (Auth.getUser()?.role === 'DM' && r.requester_role === 'OAM')) && r.status === 'pending';
+    
+    detailScroll.innerHTML = `
+      <div style="padding:16px">
+        <div style="font-size:14px;font-weight:600;margin-bottom:4px">${r.request_id}: ${r.type}</div>
+        <div style="font-size:11px;color:var(--t3);margin-bottom:12px">${r.src_territory||''}${r.dest_territory?' → '+r.dest_territory:''}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+          <div style="background:var(--s2);border-radius:var(--r);padding:10px">
+            <div style="font-size:9px;font-weight:600;text-transform:uppercase;color:var(--red-t);margin-bottom:4px">Before</div>
+            <div style="font-size:11px">${r.src_territory}</div>
+          </div>
+          <div style="background:var(--s2);border-radius:var(--r);padding:10px">
+            <div style="font-size:9px;font-weight:600;text-transform:uppercase;color:var(--green-t);margin-bottom:4px">After</div>
+            <div style="font-size:11px">${r.dest_territory||'—'}</div>
+          </div>
+        </div>
+        ${(r.comments||[]).map(c=>`<div style="background:var(--s2);border-radius:var(--r);padding:9px;margin-bottom:6px">
+          <div style="font-size:10px;font-weight:600">${c.user_name} <span style="font-size:9px;color:var(--t3)">${new Date(c.created_at).toLocaleDateString()}</span></div>
+          <div style="font-size:11px;margin-top:3px">${c.comment}</div>
+        </div>`).join('')}
+        <textarea id="new-comment-box" placeholder="Add a comment..." style="width:100%;font-size:11px;padding:8px;border:1px solid var(--border2);border-radius:var(--r);font-family:var(--font);min-height:52px;outline:none;margin-top:8px;resize:none"></textarea>
+        <button onclick="addReqComment('${reqId}')" style="margin-top:6px;padding:5px 12px;font-size:11px;font-family:var(--font);background:var(--blue-bg);color:var(--blue-t);border:1px solid var(--blue);border-radius:var(--r);cursor:pointer">Send comment</button>
+      </div>`;
+    
+    const footer = document.getElementById('action-footer');
+    if (footer) {
+      footer.innerHTML = canAct ? `<div style="display:flex;gap:8px">
+        <button onclick="approveReq('${reqId}')" style="flex:1;padding:9px;font-size:12px;font-weight:600;font-family:var(--font);background:var(--green);color:#fff;border:none;border-radius:var(--r);cursor:pointer">Approve</button>
+        <button onclick="rejectReq('${reqId}')" style="flex:1;padding:9px;font-size:12px;font-weight:600;font-family:var(--font);background:var(--red-bg);color:var(--red-t);border:1px solid var(--red);border-radius:var(--r);cursor:pointer">Reject</button>
+      </div>` : `<div style="font-size:11px;color:var(--t3);text-align:center;padding:8px">${r.status === 'approved'?'✓ Approved':r.status==='rejected'?'✗ Rejected':'Awaiting approval'}</div>`;
+    }
+  } catch(e) { showToast('Error loading request','warn'); }
+}
+
+async function addReqComment(reqId) {
+  const box = document.getElementById('new-comment-box');
+  if (!box?.value.trim()) return;
+  try {
+    await api.requests.comment(reqId, box.value.trim());
+    showToast('Comment added','success');
+    showReqDetail(reqId);
+  } catch(e) { showToast(e.message,'warn'); }
+}
+
+async function approveReq(reqId) {
+  try {
+    await api.requests.approve(reqId);
+    showToast(reqId + ' approved','success');
+    const data = await api.requests.list({limit:50});
+    REQUESTS_DATA = data?.requests||[];
+    renderSimpleRequests();
+    showReqDetail(reqId);
+  } catch(e) { showToast(e.message,'warn'); }
+}
+
+async function rejectReq(reqId) {
+  const reason = prompt('Rejection reason (required):');
+  if (!reason) return;
+  try {
+    await api.requests.reject(reqId, reason);
+    showToast(reqId + ' rejected','reject');
+    const data = await api.requests.list({limit:50});
+    REQUESTS_DATA = data?.requests||[];
+    renderSimpleRequests();
+  } catch(e) { showToast(e.message,'warn'); }
+}
+
+function filterStatus(status, btn) {
+  document.querySelectorAll('.stab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function renderList() { renderSimpleRequests(); }
+
+// ===== AUDIT PAGE =====
+async function loadAudit() {
+  try {
+    const data = await api.audit.list({limit:100});
+    AUDIT_DATA = data?.logs || [];
+    renderAuditPage();
+  } catch(e) { showToast('Error loading audit log','warn'); }
+}
+
+function renderAuditPage() {
+  const ACTION_COLORS = {'Request submitted':'b-purple','Approved':'b-green','Rejected':'b-red','Direct edit':'b-blue','Bulk upload':'b-orange','Rollback':'b-gray'};
+  const tbody = document.getElementById('audit-page-tbody');
+  if (!tbody) return;
+  const trunc = (v, n) => { const s = JSON.stringify(v||'—'); return s.length > n ? s.slice(0,n)+'…' : s; };
+  tbody.innerHTML = AUDIT_DATA.map(l => `<tr>
+    <td style="font-family:monospace;font-size:10px;color:var(--t3);white-space:nowrap">${new Date(l.created_at).toLocaleString()}</td>
+    <td style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:130px">${l.user_name||'System'}</td>
+    <td><span class="badge b-gray" style="font-size:9px">${l.user_role||'—'}</span></td>
+    <td><span class="badge ${ACTION_COLORS[l.action]||'b-gray'}" style="font-size:10px;white-space:nowrap">${l.action}</span></td>
+    <td style="font-size:11px;color:var(--t2);word-break:break-word">${l.detail||''}</td>
+    <td style="font-size:9px;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${JSON.stringify(l.before_state||'—')}">${trunc(l.before_state,25)}</td>
+    <td style="font-size:9px;color:var(--green-t);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${JSON.stringify(l.after_state||'—')}">${trunc(l.after_state,25)}</td>
+  </tr>`).join('') || '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--t3)">No audit entries yet</td></tr>';
+}
+
+async function exportAuditLog() {
+  try { await api.exports.audit(); showToast('Audit log exported','success'); }
+  catch(e) { showToast(e.message,'warn'); }
+}
+
+// ===== VERSIONS PAGE =====
+async function loadVersions() {
+  try {
+    const data = await api.versions.list();
+    VERSIONS_DATA = data || [];
+    renderVersionsPage();
+  } catch(e) { showToast('Error loading versions','warn'); }
+}
+
+function renderVersionsPage() {
+  document.getElementById('ver-metrics').innerHTML = `
+    <div class="mc"><div class="mc-label">Total versions</div><div class="mc-val">${VERSIONS_DATA.length}</div></div>
+    <div class="mc"><div class="mc-label">Current version</div><div class="mc-val" style="font-size:20px;font-family:monospace">${VERSIONS_DATA.find(v=>v.is_current)?.version_label||'—'}</div><div class="mc-sub up">Live alignment</div></div>
+    <div class="mc"><div class="mc-label">ZIPs in current</div><div class="mc-val">${(VERSIONS_DATA.find(v=>v.is_current)?.zip_count||0).toLocaleString()}</div></div>
+    <div class="mc"><div class="mc-label">HCPs in current</div><div class="mc-val">${(VERSIONS_DATA.find(v=>v.is_current)?.hcp_count||0).toLocaleString()}</div></div>`;
+  
+  const el = document.getElementById('versions-list');
+  if (el) el.innerHTML = VERSIONS_DATA.map(v => `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);padding:16px 18px;margin-bottom:10px;display:flex;gap:14px;align-items:flex-start">
+      <div style="font-family:monospace;font-size:16px;font-weight:700;color:var(--blue-t);min-width:44px">${v.version_label}</div>
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+          <div style="font-size:13px;font-weight:600">${v.description||'Alignment version'}</div>
+          ${v.is_current?'<span style="font-size:10px;padding:3px 9px;border-radius:8px;background:var(--green-bg);color:var(--green-t);font-weight:600;border:1px solid var(--green)">Current</span>':''}
+        </div>
+        <div style="font-size:11px;color:var(--t3);margin-bottom:6px">${new Date(v.created_at).toLocaleDateString()} · ${v.uploaded_by_name||'System'}</div>
+        <div style="display:flex;gap:12px;font-size:10px;color:var(--t3)">
+          <span><strong style="color:var(--text)">${(v.zip_count||0).toLocaleString()}</strong> ZIPs</span>
+          <span><strong style="color:var(--text)">${(v.hcp_count||0).toLocaleString()}</strong> HCPs</span>
+          <span><strong style="color:var(--text)">${v.territory_count||0}</strong> territories</span>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
+        ${!v.is_current && Auth.getUser()?.role==='NSD'?`<button onclick="openRollback('${v.version_label}')" style="padding:5px 14px;font-size:11px;font-family:var(--font);border:1px solid var(--red);border-radius:5px;cursor:pointer;color:var(--red-t);background:none">Rollback to ${v.version_label}</button>`:'<span style="font-size:10px;color:var(--green-t);font-weight:500">✓ Active</span>'}
+      </div>
+    </div>`).join('') || '<div style="text-align:center;padding:40px;color:var(--t3)">No versions yet</div>';
+  
+  document.getElementById('current-ver-badge').textContent = VERSIONS_DATA.find(v=>v.is_current)?.version_label || 'v1.0';
+}
+
+function openRollback(label) {
+  rollbackTarget = label;
+  document.getElementById('rollback-sub').textContent = 'Restore alignment to ' + label;
+  document.getElementById('rollback-confirm').value = '';
+  document.getElementById('rollback-reason').value = '';
+  const modal = document.getElementById('rollback-modal');
+  modal.style.display = 'flex';
+}
+
+async function confirmRollback() {
+  const confirmed = document.getElementById('rollback-confirm').value.trim();
+  const reason = document.getElementById('rollback-reason').value.trim();
+  if (confirmed !== rollbackTarget) { showToast('Version ID does not match','warn'); return; }
+  if (!reason) { showToast('Reason is required','warn'); return; }
+  try {
+    await api.versions.rollback(rollbackTarget, reason);
+    document.getElementById('rollback-modal').style.display = 'none';
+    await loadVersions();
+    showToast('Rolled back to ' + rollbackTarget,'success');
+  } catch(e) { showToast('Rollback failed: '+e.message,'warn'); }
+}
+
+function exportVersionList() { showToast('Version history exported','info'); }
+
+// ===== CONFLICTS PAGE =====
+async function loadConflicts() {
+  try {
+    const data = await api.conflicts.list();
+    CONFLICTS_DATA = data || [];
+    renderConflictsPage();
+  } catch(e) { showToast('Error loading conflicts','warn'); }
+}
+
+function renderConflictsPage() {
+  const active = CONFLICTS_DATA.filter(c=>!c.is_dismissed);
+  document.getElementById('conflict-metrics').innerHTML = `
+    <div class="mc"><div class="mc-label">Total conflicts</div><div class="mc-val">${active.length}</div></div>
+    <div class="mc"><div class="mc-label">High severity</div><div class="mc-val" style="color:var(--red-t)">${active.filter(c=>c.severity==='high').length}</div></div>
+    <div class="mc"><div class="mc-label">Medium severity</div><div class="mc-val" style="color:var(--orange-t)">${active.filter(c=>c.severity==='med').length}</div></div>
+    <div class="mc"><div class="mc-label">Low severity</div><div class="mc-val">${active.filter(c=>c.severity==='low').length}</div></div>`;
+  
+  const SEV = {high:'b-red',med:'b-orange',low:'b-gray'};
+  document.getElementById('conflicts-page-body').innerHTML = active.map(c => `
+    <div class="panel">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+        <span style="font-size:13px;font-weight:600">${c.title}</span>
+        <span class="badge ${SEV[c.severity]||'b-gray'}">${c.severity}</span>
+      </div>
+      <div style="font-size:12px;color:var(--t3);margin-bottom:10px">${c.description||''}</div>
+      <div style="font-size:10px;color:var(--t4);margin-bottom:10px">Affected HCPs: ${c.affected_hcps||0}${c.request_id?' · Request: '+c.request_id:''}</div>
+      <div style="display:flex;gap:8px">
+        <button class="tbtn" onclick="showToast('Conflict flagged for review','info')">Flag for review</button>
+        <button class="tbtn" onclick="showToast('Conflict dismissed','info')">Dismiss</button>
+      </div>
+    </div>`).join('') || '<div style="text-align:center;padding:40px;color:var(--green-t);font-weight:500">✓ No active conflicts</div>';
+}
+
+// ===== UPLOAD PAGE =====
+function setUploadMode(mode) {
+  uploadMode = mode;
+  document.getElementById('mode-append').style.borderColor = mode==='append'?'var(--blue)':'var(--border)';
+  document.getElementById('mode-append').style.background = mode==='append'?'var(--blue-bg)':'';
+  document.getElementById('mode-replace').style.borderColor = mode==='replace'?'var(--blue)':'var(--border)';
+  document.getElementById('mode-replace').style.background = mode==='replace'?'var(--blue-bg)':'';
+}
+
+async function handleFileUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const status = document.getElementById('upload-status');
+  status.style.display = 'block';
+  status.style.background = 'var(--blue-bg)';
+  status.style.color = 'var(--blue-t)';
+  status.textContent = 'Uploading ' + file.name + '...';
+  try {
+    const result = await api.upload.file(file, uploadMode);
+    status.style.background = 'var(--green-bg)';
+    status.style.color = 'var(--green-t)';
+    status.textContent = '✓ Upload complete! Version ' + result.version + ' created. ' + result.zips + ' ZIPs loaded.';
+    showToast('Upload complete — ' + result.version,'success');
+    await loadVersions();
+  } catch(e) {
+    status.style.background = 'var(--red-bg)';
+    status.style.color = 'var(--red-t)';
+    status.textContent = '✗ Upload failed: ' + e.message;
+  }
+}
+
+// ===== EXPORTS PAGE =====
+function renderExportPage() {
+  const cards = [
+    {title:'ZTT mapping',desc:'All ZIP → Territory → Rep mappings',fn:'() => api.exports.ztt().catch(e=>showToast(e.message,"warn"))'},
+    {title:'Territory index summary',desc:'All 50 territories with all 4 alignment indices',fn:'() => api.exports.territories().catch(e=>showToast(e.message,"warn"))'},
+    {title:'Audit log',desc:'Full action history',fn:'() => api.exports.audit().catch(e=>showToast(e.message,"warn"))'},
+  ];
+  document.getElementById('export-page-body').innerHTML = cards.map(e => `
+    <div class="panel" style="display:flex;align-items:center;gap:14px">
+      <div style="flex:1"><div style="font-size:13px;font-weight:600;margin-bottom:3px">${e.title}</div><div style="font-size:12px;color:var(--t3)">${e.desc}</div></div>
+      <button class="tbtn pri" onclick="(${e.fn})()" style="flex-shrink:0">
+        <svg viewBox="0 0 16 16" fill="none" width="11" height="11"><path d="M8 3v8M5 8l3 3 3-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M2 13h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        Download CSV
+      </button>
+    </div>`).join('');
+}
+
+// ===== TOAST =====
+function showToast(msg, type='info') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast ' + type; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+// ===== INIT =====
+(async function init() {
+  if (!window.api) { console.log('No API - standalone mode'); return; }
+  if (!Auth.isLoggedIn()) { window.location.href = '/login.html'; return; }
+  
+  applyRole();
+  document.getElementById('logout-btn').onclick = async () => {
+    await api.auth.logout();
+    window.location.href = '/login.html';
+  };
+  
+  // Load initial dashboard data
+  await loadDashboard();
+  openPage('dashboard', document.getElementById('nav-dashboard'));
+})();
+
+// ===== TERRITORY DETAIL PANEL =====
+function closeTerrModal() {
+  const bd = document.getElementById('terr-modal-bd');
+  bd.style.display = 'none';
+}
+
+async function openTerrDetail(terrId, terrName) {
+  const bd = document.getElementById('terr-modal-bd');
+  bd.style.display = 'flex';
+  document.getElementById('tm-name').textContent = terrName;
+  document.getElementById('tm-sub').textContent = 'Loading...';
+  document.getElementById('tm-body').innerHTML = '<div style="text-align:center;padding:40px;color:var(--t3)">Loading...</div>';
+
+  try {
+    const [terr, hcpData] = await Promise.all([
+      api.territories.get(terrId),
+      api.territories.getHCPs(terrId, { limit: 10 })
+    ]);
+
+    const isVac = !terr.rep_name || terr.rep_name.startsWith('Vacant');
+    document.getElementById('tm-sub').textContent = terr.district + ' · ' + (isVac ? 'Vacant' : terr.rep_name);
+
+    const IDX_LABELS = ['','Index 1 (25% ZIP + 75% PSF)','Index 2 (50% Prev + 50% PSF)','Index 3 (100% PSF)','Index 4 (100% CSF)'];
+
+    document.getElementById('tm-body').innerHTML = `
+      <!-- Rep card -->
+      <div style="background:var(--s2);border-radius:var(--r2);padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;gap:12px">
+        <div style="width:36px;height:36px;border-radius:50%;background:${isVac?'var(--orange-bg)':'var(--blue-bg)'};display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:${isVac?'var(--orange-t)':'var(--blue-t)'}">
+          ${isVac ? '?' : (terr.rep_name||'').split(' ').map(w=>w[0]).slice(0,2).join('')}
+        </div>
+        <div>
+          <div style="font-size:13px;font-weight:600;color:${isVac?'var(--orange-t)':'var(--text)'}">${isVac ? 'Vacant Territory' : terr.rep_name}</div>
+          <div style="font-size:11px;color:var(--t3)">${terr.rep_id||''} · ${terr.district}</div>
+        </div>
+      </div>
+
+      <!-- Stats row -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+        <div style="background:var(--s2);border-radius:var(--r);padding:10px 12px;text-align:center">
+          <div style="font-size:22px;font-weight:700">${terr.hco_count||0}</div>
+          <div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.3px">HCPs</div>
+        </div>
+        <div style="background:var(--s2);border-radius:var(--r);padding:10px 12px;text-align:center">
+          <div style="font-size:22px;font-weight:700">${parseInt(terr.zip_count||0).toLocaleString()}</div>
+          <div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.3px">ZIPs</div>
+        </div>
+      </div>
+
+      <!-- Index scores -->
+      <div style="margin-bottom:14px">
+        <div style="font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">Alignment indices</div>
+        ${[1,2,3,4].map(i => {
+          const val = parseFloat(terr['idx'+i]||0);
+          const max = 1500;
+          const pct = Math.min(Math.round(val/max*100), 100);
+          return `<div style="margin-bottom:8px">
+            <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+              <span style="font-size:11px;color:var(--t2)">Index ${i}</span>
+              <span style="font-size:11px;font-weight:600">${val.toFixed(1)}</span>
+            </div>
+            <div style="height:6px;background:var(--s3);border-radius:3px;overflow:hidden">
+              <div style="height:100%;width:${pct}%;background:${terr.color||'#378ADD'};border-radius:3px"></div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+
+      <!-- Top HCPs -->
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">
+          Top HCPs by Index 3 <span style="font-weight:400;color:var(--t4)">(showing 10 of ${terr.hco_count||0})</span>
+        </div>
+        ${(hcpData.hcps||[]).length === 0
+          ? '<div style="font-size:11px;color:var(--t3);text-align:center;padding:16px">No HCPs in this territory</div>'
+          : `<table style="width:100%;border-collapse:collapse;font-size:11px">
+              <thead><tr style="border-bottom:1px solid var(--border)">
+                <th style="text-align:left;padding:5px 6px;color:var(--t3);font-weight:500">HCP</th>
+                <th style="text-align:left;padding:5px 6px;color:var(--t3);font-weight:500">City</th>
+                <th style="text-align:left;padding:5px 6px;color:var(--t3);font-weight:500">Tier</th>
+                <th style="text-align:right;padding:5px 6px;color:var(--t3);font-weight:500">Idx 3</th>
+              </tr></thead>
+              <tbody>
+                ${(hcpData.hcps||[]).map(h => `<tr style="border-bottom:1px solid var(--border)">
+                  <td style="padding:5px 6px;font-family:monospace;font-size:9px;color:var(--t3)">${h.hcp_id}</td>
+                  <td style="padding:5px 6px">${h.city||'—'}</td>
+                  <td style="padding:5px 6px"><span style="font-size:9px;padding:1px 6px;border-radius:8px;background:var(--blue-bg);color:var(--blue-t)">${h.tier}</span></td>
+                  <td style="padding:5px 6px;text-align:right;font-weight:600">${parseFloat(h.idx3||0).toFixed(1)}</td>
+                </tr>`).join('')}
+              </tbody>
+            </table>`
+        }
+      </div>
+
+      <!-- Actions -->
+      <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border);display:flex;gap:8px">
+        <button class="tbtn" style="flex:1" onclick="openPage('hcps',document.getElementById('nav-hcps'));document.getElementById('hcp-terr-p').value='${terrName}';renderHCPPage();closeTerrModal()">
+          View all HCPs
+        </button>
+        <button class="tbtn pri" style="flex:1" onclick="openPage('requests',document.getElementById('nav-requests'));closeTerrModal()">
+          + New request
+        </button>
+      </div>
+    `;
+  } catch(err) {
+    document.getElementById('tm-body').innerHTML = `<div style="color:var(--red-t);padding:20px;font-size:12px">Error loading territory: ${err.message}</div>`;
+  }
+}
+
+
+// ===== KEEPALIVE PING =====
+// Pings the backend every 5 minutes to prevent Render free tier sleep
+(function keepAlive() {
+  const ping = () => {
+    fetch('https://territory-align-api.onrender.com/health')
+      .then(r => r.json())
+      .then(d => console.log('[keepalive] backend ok:', d.timestamp))
+      .catch(e => console.warn('[keepalive] ping failed:', e.message));
+  };
+  ping(); // immediate ping on load
+  setInterval(ping, 5 * 60 * 1000); // every 5 minutes
+})();
+
+</script>
+
+<!-- Territory Detail Modal -->
+<div id="terr-modal-bd" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:400;align-items:flex-start;justify-content:flex-end" onclick="if(event.target===this)closeTerrModal()">
+  <div id="terr-modal" style="background:var(--surface);width:420px;height:100vh;overflow-y:auto;box-shadow:-4px 0 24px rgba(0,0,0,.12);display:flex;flex-direction:column">
+    <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+      <div>
+        <div style="font-size:15px;font-weight:700" id="tm-name">Territory</div>
+        <div style="font-size:11px;color:var(--t3);margin-top:2px" id="tm-sub"></div>
+      </div>
+      <button onclick="closeTerrModal()" style="background:none;border:none;cursor:pointer;color:var(--t3);font-size:18px;line-height:1;padding:4px 8px">✕</button>
+    </div>
+    <div style="padding:16px 20px;flex:1" id="tm-body">
+      <div style="text-align:center;padding:40px;color:var(--t3)">Loading...</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

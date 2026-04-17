@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TerritoryAlign — Phase 2 Map</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f7;color:#1d1d1f;height:100vh;overflow:hidden;display:flex;flex-direction:column}
+#tab-bar{display:flex;gap:0;padding:10px 16px 0;background:#fff;border-bottom:1px solid #e0e0e0;flex-shrink:0}
+.tab{padding:9px 18px;font-size:13px;font-family:inherit;border:none;background:none;cursor:pointer;color:#666;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tab.active{color:#0071e3;border-bottom-color:#0071e3;font-weight:500}
+.view{display:none;height:calc(100vh - 47px)}.view.active{display:flex}
+#sidebar,#sidebar2{width:240px;flex-shrink:0;background:#fff;border-right:1px solid #e0e0e0;display:flex;flex-direction:column;overflow:hidden}
+.map-pane{flex:1;position:relative;min-width:0;background:#e8edf2}
+svg.map{width:100%;height:100%}
+.sb-sect{padding:10px 13px;border-bottom:1px solid #f0f0f0}
+.sb-label{font-size:10px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px}
+.d-btns,.i-btns{display:flex;gap:4px;flex-wrap:wrap}
+.d-btn,.i-btn{padding:4px 9px;font-size:10px;background:#f5f5f7;border:1px solid #ddd;border-radius:6px;cursor:pointer;color:#555}
+.d-btn.active{background:#e8f0fe;border-color:#0071e3;color:#0071e3;font-weight:600}
+.i-btn.active{background:#e8f8f0;border-color:#34c759;color:#1a7a3c;font-weight:600}
+.i-desc{font-size:9px;color:#999;margin-top:5px;line-height:1.4}
+.leg-sect{padding:8px 0 4px;border-bottom:1px solid #f0f0f0}
+.leg-scroll{overflow-y:auto;max-height:190px;padding:0 6px}
+.leg-item{display:flex;align-items:center;gap:6px;padding:3px 6px;cursor:pointer;border-radius:5px;font-size:10px;color:#555}
+.leg-item:hover,.leg-item.hi{background:#f5f5f7;color:#1d1d1f;font-weight:500}
+.leg-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.leg-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.leg-num{font-size:9px;color:#aaa;font-family:monospace}
+.detail{flex:1;overflow-y:auto;padding:10px 13px}
+.det-name{font-size:12px;font-weight:600;color:#1d1d1f;margin-bottom:1px}
+.det-sub{font-size:10px;color:#888;margin-bottom:8px}
+.det-row{display:flex;justify-content:space-between;font-size:10px;padding:3px 0;border-bottom:1px solid #f5f5f7}
+.det-row:last-child{border-bottom:none}
+.det-k{color:#888}.det-v{font-weight:600;color:#1d1d1f}
+.idx-r{display:flex;align-items:center;gap:6px;padding:2px 0;font-size:10px}
+.idx-bg{flex:1;height:4px;background:#eee;border-radius:2px;overflow:hidden}
+.idx-f{height:100%;border-radius:2px}
+.vac{font-size:9px;padding:2px 7px;border-radius:6px;background:#fde8e8;color:#c0392b;font-weight:600;display:inline-block;margin-bottom:7px}
+.tt{position:absolute;background:#fff;border:1px solid #ddd;border-radius:9px;padding:10px 13px;font-size:10px;pointer-events:none;z-index:9999;min-width:175px;max-width:220px;box-shadow:0 4px 16px rgba(0,0,0,0.12)}
+.tt-name{font-size:11px;font-weight:600;color:#1d1d1f;margin-bottom:1px}
+.tt-d{font-size:9px;color:#888;margin-bottom:5px}
+.tt-r{display:flex;justify-content:space-between;margin-bottom:2px}
+.tt-k{color:#888}.tt-v{font-weight:600;color:#1d1d1f}
+.tt-sep{border-top:1px solid #f0f0f0;margin:4px 0}
+.loading{position:absolute;inset:0;background:rgba(248,248,250,0.95);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;z-index:1000}
+.spinner{width:24px;height:24px;border:2.5px solid #ddd;border-top-color:#0071e3;border-radius:50%;animation:spin 0.7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.load-t{font-size:12px;color:#888}
+.mc-btn{position:absolute;bottom:14px;left:14px;padding:6px 14px;font-size:11px;background:#fff;border:1px solid #ddd;border-radius:16px;cursor:pointer;color:#555;z-index:500}
+.mc-btn:hover{color:#0071e3;border-color:#0071e3}
+.heat-legend{position:absolute;bottom:14px;right:14px;background:#fff;border:1px solid #e0e0e0;border-radius:9px;padding:9px 12px;font-size:10px;z-index:500}
+.hl-title{font-weight:600;color:#1d1d1f;margin-bottom:5px}
+.hl-bar{display:flex;gap:2px;margin-bottom:3px}
+.hl-seg{height:9px;width:20px;border-radius:2px}
+.hl-range{display:flex;justify-content:space-between;font-size:9px;color:#aaa}
+.req-btn{width:100%;padding:6px;font-size:10px;background:#e8f0fe;border:none;border-radius:6px;cursor:pointer;color:#0071e3;font-weight:600;margin-top:10px}
+.note{background:#fff8e8;border-top:1px solid #ffe0a0;padding:5px 14px;font-size:10px;color:#7a5a00;flex-shrink:0}
+</style>
+</head>
+<body>
+
+<div id="tab-bar">
+  <button class="tab active" onclick="switchTab('county',this)">County territory map</button>
+  <button class="tab" onclick="switchTab('heat',this)">Index heatmap (state level)</button>
+</div>
+
+<div id="view-county" class="view active">
+  <div id="sidebar">
+    <div class="sb-sect">
+      <div class="sb-label">District filter</div>
+      <div class="d-btns">
+        <button class="d-btn active" onclick="setDistrict('ALL',this)">All</button>
+        <button class="d-btn" onclick="setDistrict('NORTHEAST',this)">NE</button>
+        <button class="d-btn" onclick="setDistrict('SOUTHEAST',this)">SE</button>
+        <button class="d-btn" onclick="setDistrict('NORTH CENTRAL',this)">NC</button>
+        <button class="d-btn" onclick="setDistrict('SOUTH CENTRAL',this)">SC</button>
+        <button class="d-btn" onclick="setDistrict('WEST',this)">W</button>
+      </div>
+    </div>
+    <div class="sb-sect">
+      <div class="sb-label">Active index</div>
+      <div class="i-btns">
+        <button class="i-btn" onclick="setIdx(1,this)">Idx 1</button>
+        <button class="i-btn" onclick="setIdx(2,this)">Idx 2</button>
+        <button class="i-btn active" onclick="setIdx(3,this)">Idx 3</button>
+        <button class="i-btn" onclick="setIdx(4,this)">Idx 4</button>
+      </div>
+      <div class="i-desc" id="idx-desc">100% Patient Start Forms</div>
+    </div>
+    <div class="leg-sect">
+      <div class="sb-label" style="padding:0 13px">Territories (sorted by index)</div>
+      <div class="leg-scroll" id="leg-list"></div>
+    </div>
+    <div class="detail" id="det-panel">
+      <div style="font-size:10px;color:#aaa;text-align:center;padding:20px 0">Hover or click a county to explore</div>
+    </div>
+  </div>
+  <div class="map-pane" id="county-pane">
+    <div class="loading" id="county-loading"><div class="spinner"></div><div class="load-t">Fetching US county boundaries…</div></div>
+    <svg class="map" id="county-svg"></svg>
+    <div id="county-tt" class="tt" style="display:none"></div>
+    <button class="mc-btn" onclick="resetZoom()">Reset zoom</button>
+  </div>
+</div>
+
+<div id="view-heat" class="view">
+  <div id="sidebar2">
+    <div class="sb-sect">
+      <div class="sb-label">Index</div>
+      <div class="i-btns">
+        <button class="i-btn" onclick="setHeatIdx(1,this)">Idx 1</button>
+        <button class="i-btn" onclick="setHeatIdx(2,this)">Idx 2</button>
+        <button class="i-btn active" onclick="setHeatIdx(3,this)">Idx 3</button>
+        <button class="i-btn" onclick="setHeatIdx(4,this)">Idx 4</button>
+      </div>
+      <div class="i-desc" id="heat-idx-desc">100% Patient Start Forms — dominant territory per state</div>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:4px 6px">
+      <div class="sb-label" style="padding:6px 8px 4px">State rankings</div>
+      <div id="heat-ranking"></div>
+    </div>
+  </div>
+  <div class="map-pane" id="heat-pane">
+    <div class="loading" id="heat-loading"><div class="spinner"></div><div class="load-t">Building heatmap…</div></div>
+    <svg class="map" id="heat-svg"></svg>
+    <div id="heat-tt" class="tt" style="display:none"></div>
+    <div class="heat-legend" id="heat-legend"></div>
+  </div>
+</div>
+
+<div class="note">Territory boundaries derived from 931 ZIP-prefix groups mapped to 50 territories from your ZTT data. Exact ZIP polygon rendering requires Mapbox — available in the hosted app (Phase 6).</div>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
+<script>
+const TERRITORIES=[{name:"ALBANY, NY",district:"NORTHEAST",rep_name:"Rep 1",rep_id:"E001",hco_count:194,zip_count:1583,idx1:939.2,idx2:934.4,idx3:961.3,idx4:947.1,color:"#378ADD"},{name:"ATLANTA E, GA",district:"SOUTHEAST",rep_name:"Rep 2",rep_id:"E002",hco_count:121,zip_count:382,idx1:934.4,idx2:915.5,idx3:943.4,idx4:959.8,color:"#1D9E75"},{name:"ATLANTA W, GA",district:"SOUTHEAST",rep_name:"Rep 3",rep_id:"E003",hco_count:113,zip_count:396,idx1:874.4,idx2:878.0,idx3:860.5,idx4:845.7,color:"#D85A30"},{name:"BIRMINGHAM, AL",district:"SOUTHEAST",rep_name:"Rep 4",rep_id:"E004",hco_count:159,zip_count:973,idx1:897.0,idx2:832.2,idx3:955.6,idx4:918.6,color:"#7F77DD"},{name:"BOSTON, MA",district:"NORTHEAST",rep_name:"Rep 5",rep_id:"E005",hco_count:308,zip_count:2197,idx1:981.2,idx2:1133.8,idx3:812.5,idx4:747.5,color:"#EF9F27"},{name:"BROOKLYN, NY",district:"NORTHEAST",rep_name:"Rep 6",rep_id:"E006",hco_count:184,zip_count:416,idx1:848.0,idx2:1169.6,idx3:506.1,idx4:487.8,color:"#D4537E"},{name:"CHARLESTON, SC",district:"SOUTHEAST",rep_name:"Rep 8",rep_id:"E008",hco_count:110,zip_count:458,idx1:895.9,idx2:877.8,idx3:927.6,idx4:931.3,color:"#39b54a"},{name:"CHARLOTTE, NC",district:"SOUTHEAST",rep_name:"Rep 9",rep_id:"E009",hco_count:138,zip_count:900,idx1:872.7,idx2:913.2,idx3:824.4,idx4:820.4,color:"#e84393"},{name:"CHICAGO N, IL",district:"NORTH CENTRAL",rep_name:"Rep 10",rep_id:"E010",hco_count:139,zip_count:420,idx1:845.0,idx2:916.9,idx3:755.2,idx4:766.6,color:"#00bcd4"},{name:"CHICAGO S, IL",district:"NORTH CENTRAL",rep_name:"Rep 11",rep_id:"E011",hco_count:169,zip_count:526,idx1:1276.6,idx2:1278.7,idx3:1262.5,idx4:1276.5,color:"#ff5722"},{name:"CINCINNATI, OH",district:"NORTHEAST",rep_name:"Rep 12",rep_id:"E012",hco_count:134,zip_count:656,idx1:946.5,idx2:926.9,idx3:971.5,idx4:969.3,color:"#9c27b0"},{name:"COLUMBUS, OH",district:"NORTHEAST",rep_name:"Rep 13",rep_id:"E013",hco_count:176,zip_count:1224,idx1:1257.4,idx2:1176.1,idx3:1339.9,idx4:1336.7,color:"#3f51b5"},{name:"DALLAS, TX",district:"SOUTH CENTRAL",rep_name:"Vacant Territory 1",rep_id:"E048",hco_count:180,zip_count:770,idx1:1038.0,idx2:1106.8,idx3:954.1,idx4:950.3,color:"#009688"},{name:"DENVER, CO",district:"WEST",rep_name:"Rep 15",rep_id:"E015",hco_count:159,zip_count:990,idx1:958.8,idx2:994.6,idx3:929.9,idx4:928.1,color:"#ff9800"},{name:"DETROIT N, MI",district:"NORTH CENTRAL",rep_name:"Rep 16",rep_id:"E016",hco_count:176,zip_count:888,idx1:1222.2,idx2:1187.1,idx3:1261.3,idx4:1260.7,color:"#795548"},{name:"FORT WORTH, TX",district:"SOUTH CENTRAL",rep_name:"Rep 14",rep_id:"E014",hco_count:95,zip_count:563,idx1:1192.9,idx2:1078.6,idx3:1312.5,idx4:1346.2,color:"#607d8b"},{name:"FT LAUDERDALE, FL",district:"SOUTHEAST",rep_name:"Rep 17",rep_id:"E017",hco_count:135,zip_count:433,idx1:1015.3,idx2:949.0,idx3:1106.4,idx4:1137.2,color:"#e91e63"},{name:"HOUSTON, TX",district:"SOUTH CENTRAL",rep_name:"Rep 18",rep_id:"E018",hco_count:153,zip_count:419,idx1:1148.2,idx2:1194.2,idx3:1103.6,idx4:1111.8,color:"#2196f3"},{name:"INLAND EMPIRE, CA",district:"WEST",rep_name:"Rep 19",rep_id:"E019",hco_count:114,zip_count:434,idx1:806.2,idx2:925.4,idx3:676.7,idx4:665.2,color:"#4caf50"},{name:"JACKSONVILLE, FL",district:"SOUTHEAST",rep_name:"Rep 20",rep_id:"E020",hco_count:90,zip_count:419,idx1:858.5,idx2:806.4,idx3:941.4,idx4:962.9,color:"#ff6347"},{name:"LOS ANGELES E, CA",district:"WEST",rep_name:"Rep 21",rep_id:"E021",hco_count:110,zip_count:244,idx1:1101.1,idx2:1027.7,idx3:1187.5,idx4:1219.5,color:"#8bc34a"},{name:"LOS ANGELES W, CA",district:"WEST",rep_name:"Vacant Territory 3",rep_id:"E050",hco_count:120,zip_count:261,idx1:1041.1,idx2:947.2,idx3:1135.5,idx4:1156.2,color:"#00acc1"},{name:"LOUISVILLE, KY",district:"SOUTH CENTRAL",rep_name:"Rep 22",rep_id:"E022",hco_count:158,zip_count:2155,idx1:1284.6,idx2:1182.8,idx3:1398.8,idx4:1425.4,color:"#ab47bc"},{name:"MANHATTAN, NY",district:"NORTHEAST",rep_name:"Rep 23",rep_id:"E023",hco_count:137,zip_count:219,idx1:816.0,idx2:950.0,idx3:676.4,idx4:668.4,color:"#26a69a"},{name:"MILWAUKEE, WI",district:"NORTH CENTRAL",rep_name:"Rep 24",rep_id:"E024",hco_count:139,zip_count:927,idx1:927.8,idx2:903.8,idx3:958.8,idx4:915.4,color:"#ffa726"},{name:"MINNEAPOLIS, MN",district:"NORTH CENTRAL",rep_name:"Rep 25",rep_id:"E025",hco_count:168,zip_count:1590,idx1:1063.4,idx2:1029.6,idx3:1113.4,idx4:1115.0,color:"#ef5350"},{name:"NASHVILLE, TN",district:"SOUTH CENTRAL",rep_name:"Rep 26",rep_id:"E026",hco_count:185,zip_count:754,idx1:1134.4,idx2:1198.3,idx3:1068.6,idx4:1051.6,color:"#42a5f5"},{name:"NEW JERSEY, NJ",district:"NORTHEAST",rep_name:"Rep 27",rep_id:"E027",hco_count:186,zip_count:526,idx1:929.3,idx2:1096.8,idx3:740.6,idx4:728.5,color:"#66bb6a"},{name:"NEW ORLEANS, LA",district:"SOUTH CENTRAL",rep_name:"Rep 28",rep_id:"E028",hco_count:134,zip_count:1155,idx1:1255.2,idx2:1098.1,idx3:1440.2,idx4:1479.3,color:"#ec407a"},{name:"ORANGE COUNTY, CA",district:"WEST",rep_name:"Rep 29",rep_id:"E029",hco_count:116,zip_count:195,idx1:861.8,idx2:955.6,idx3:761.9,idx4:738.0,color:"#7e57c2"},{name:"PALM BEACH, FL",district:"SOUTHEAST",rep_name:"Rep 30",rep_id:"E030",hco_count:111,zip_count:387,idx1:936.3,idx2:913.1,idx3:956.1,idx4:959.8,color:"#26c6da"},{name:"PENNSYLVANIA, PA",district:"NORTHEAST",rep_name:"Rep 7",rep_id:"E007",hco_count:173,zip_count:1736,idx1:1205.0,idx2:1149.8,idx3:1259.1,idx4:1232.2,color:"#d4e157"},{name:"PEORIA, IL",district:"NORTH CENTRAL",rep_name:"Rep 31",rep_id:"E031",hco_count:154,zip_count:1957,idx1:1175.4,idx2:1076.8,idx3:1286.6,idx4:1311.4,color:"#ff7043"},{name:"PHILADELPHIA, PA",district:"NORTHEAST",rep_name:"Rep 32",rep_id:"E032",hco_count:185,zip_count:800,idx1:859.6,idx2:962.5,idx3:743.9,idx4:715.9,color:"#8d6e63"},{name:"PHOENIX E, AZ",district:"WEST",rep_name:"Rep 33",rep_id:"E033",hco_count:106,zip_count:543,idx1:880.1,idx2:853.3,idx3:895.0,idx4:871.1,color:"#78909c"},{name:"PHOENIX W, AZ",district:"WEST",rep_name:"Vacant Territory 2",rep_id:"E049",hco_count:162,zip_count:655,idx1:1202.8,idx2:1252.8,idx3:1142.5,idx4:1140.3,color:"#5c6bc0"},{name:"PORTLAND, OR",district:"NORTH CENTRAL",rep_name:"Rep 34",rep_id:"E034",hco_count:108,zip_count:658,idx1:732.2,idx2:764.9,idx3:688.3,idx4:674.7,color:"#29b6f6"},{name:"RALEIGH, NC",district:"SOUTHEAST",rep_name:"Rep 35",rep_id:"E035",hco_count:120,zip_count:556,idx1:829.2,idx2:815.8,idx3:843.8,idx4:833.1,color:"#9ccc65"},{name:"RICHMOND, VA",district:"SOUTHEAST",rep_name:"Rep 36",rep_id:"E036",hco_count:124,zip_count:598,idx1:744.8,idx2:811.3,idx3:669.4,idx4:671.5,color:"#f06292"},{name:"SACRAMENTO, CA",district:"WEST",rep_name:"Rep 37",rep_id:"E037",hco_count:95,zip_count:723,idx1:930.5,idx2:844.2,idx3:1016.9,idx4:1032.6,color:"#4dd0e1"},{name:"SAINT LOUIS, MO",district:"SOUTH CENTRAL",rep_name:"Rep 38",rep_id:"E038",hco_count:114,zip_count:1490,idx1:955.9,idx2:890.6,idx3:1025.7,idx4:1054.8,color:"#aed581"},{name:"SALT LAKE CITY, UT",district:"NORTH CENTRAL",rep_name:"Rep 39",rep_id:"E039",hco_count:113,zip_count:1304,idx1:724.8,idx2:756.1,idx3:688.3,idx4:646.2,color:"#4db6ac"},{name:"SAN ANTONIO, TX",district:"SOUTH CENTRAL",rep_name:"Rep 40",rep_id:"E040",hco_count:85,zip_count:505,idx1:1123.6,idx2:1021.2,idx3:1227.8,idx4:1273.4,color:"#f48fb1"},{name:"SAN FRANCISCO, CA",district:"WEST",rep_name:"Rep 41",rep_id:"E041",hco_count:138,zip_count:441,idx1:1105.8,idx2:1101.9,idx3:1099.5,idx4:1108.6,color:"#ce93d8"},{name:"SAN JOSE, CA",district:"WEST",rep_name:"Rep 42",rep_id:"E042",hco_count:122,zip_count:398,idx1:1299.1,idx2:1189.9,idx3:1406.2,idx4:1441.2,color:"#ffca28"},{name:"SEATTLE, WA",district:"NORTH CENTRAL",rep_name:"Rep 43",rep_id:"E043",hco_count:156,zip_count:826,idx1:996.6,idx2:996.2,idx3:990.7,idx4:997.8,color:"#ff8a65"},{name:"TAMPA, FL",district:"SOUTHEAST",rep_name:"Rep 44",rep_id:"E044",hco_count:143,zip_count:507,idx1:736.6,idx2:831.2,idx3:629.0,idx4:617.7,color:"#a1887f"},{name:"TULSA, OK",district:"SOUTH CENTRAL",rep_name:"Rep 45",rep_id:"E045",hco_count:121,zip_count:1558,idx1:1152.6,idx2:992.6,idx3:1343.6,idx4:1362.1,color:"#90a4ae"},{name:"WASHINGTON, DC",district:"NORTHEAST",rep_name:"Rep 46",rep_id:"E046",hco_count:183,zip_count:1580,idx1:1121.4,idx2:1238.4,idx3:983.3,idx4:956.6,color:"#80cbc4"},{name:"WICHITA, KS",district:"SOUTH CENTRAL",rep_name:"Rep 47",rep_id:"E047",hco_count:107,zip_count:1226,idx1:1055.4,idx2:945.0,idx3:1204.2,idx4:1219.5,color:"#ffe082"}];
+
+const ZIP3_TERR={"005":"BROOKLYN, NY","006":"FT LAUDERDALE, FL","007":"FT LAUDERDALE, FL","008":"FT LAUDERDALE, FL","009":"FT LAUDERDALE, FL","010":"BOSTON, MA","011":"BOSTON, MA","012":"BOSTON, MA","013":"BOSTON, MA","014":"BOSTON, MA","015":"BOSTON, MA","016":"BOSTON, MA","017":"BOSTON, MA","018":"BOSTON, MA","019":"BOSTON, MA","020":"BOSTON, MA","021":"BOSTON, MA","022":"BOSTON, MA","023":"BOSTON, MA","024":"BOSTON, MA","025":"BOSTON, MA","026":"BOSTON, MA","027":"BOSTON, MA","028":"BOSTON, MA","029":"BOSTON, MA","030":"BOSTON, MA","031":"BOSTON, MA","032":"BOSTON, MA","033":"BOSTON, MA","034":"BOSTON, MA","035":"BOSTON, MA","036":"BOSTON, MA","037":"BOSTON, MA","038":"BOSTON, MA","039":"BOSTON, MA","040":"BOSTON, MA","041":"BOSTON, MA","042":"BOSTON, MA","043":"BOSTON, MA","044":"BOSTON, MA","045":"BOSTON, MA","046":"BOSTON, MA","047":"BOSTON, MA","048":"BOSTON, MA","049":"BOSTON, MA","050":"BOSTON, MA","051":"BOSTON, MA","052":"BOSTON, MA","053":"BOSTON, MA","054":"BOSTON, MA","055":"BOSTON, MA","056":"BOSTON, MA","057":"BOSTON, MA","058":"BOSTON, MA","059":"BOSTON, MA","060":"BOSTON, MA","061":"BOSTON, MA","062":"BOSTON, MA","063":"BOSTON, MA","064":"BOSTON, MA","065":"BOSTON, MA","066":"MANHATTAN, NY","067":"BOSTON, MA","068":"MANHATTAN, NY","069":"MANHATTAN, NY","070":"NEW JERSEY, NJ","071":"NEW JERSEY, NJ","072":"NEW JERSEY, NJ","073":"BROOKLYN, NY","074":"NEW JERSEY, NJ","075":"NEW JERSEY, NJ","076":"NEW JERSEY, NJ","077":"NEW JERSEY, NJ","078":"NEW JERSEY, NJ","079":"NEW JERSEY, NJ","080":"PHILADELPHIA, PA","081":"PHILADELPHIA, PA","082":"PHILADELPHIA, PA","083":"PHILADELPHIA, PA","084":"PHILADELPHIA, PA","085":"NEW JERSEY, NJ","086":"NEW JERSEY, NJ","087":"NEW JERSEY, NJ","088":"NEW JERSEY, NJ","089":"NEW JERSEY, NJ","090":"WASHINGTON, DC","091":"WASHINGTON, DC","092":"WASHINGTON, DC","093":"WASHINGTON, DC","094":"WASHINGTON, DC","095":"WASHINGTON, DC","096":"WASHINGTON, DC","097":"WASHINGTON, DC","098":"WASHINGTON, DC","099":"WASHINGTON, DC","100":"MANHATTAN, NY","101":"MANHATTAN, NY","102":"BROOKLYN, NY","103":"BROOKLYN, NY","104":"MANHATTAN, NY","105":"ALBANY, NY","106":"MANHATTAN, NY","107":"MANHATTAN, NY","108":"MANHATTAN, NY","109":"ALBANY, NY","110":"BROOKLYN, NY","111":"BROOKLYN, NY","112":"BROOKLYN, NY","113":"BROOKLYN, NY","114":"BROOKLYN, NY","115":"BROOKLYN, NY","116":"BROOKLYN, NY","117":"BROOKLYN, NY","118":"BROOKLYN, NY","119":"BROOKLYN, NY","120":"ALBANY, NY","121":"ALBANY, NY","122":"ALBANY, NY","123":"ALBANY, NY","124":"ALBANY, NY","125":"ALBANY, NY","126":"ALBANY, NY","127":"ALBANY, NY","128":"ALBANY, NY","129":"ALBANY, NY","130":"ALBANY, NY","131":"ALBANY, NY","132":"ALBANY, NY","133":"ALBANY, NY","134":"ALBANY, NY","135":"ALBANY, NY","136":"ALBANY, NY","137":"ALBANY, NY","138":"ALBANY, NY","139":"ALBANY, NY","140":"ALBANY, NY","141":"ALBANY, NY","142":"ALBANY, NY","143":"ALBANY, NY","144":"ALBANY, NY","145":"ALBANY, NY","146":"ALBANY, NY","147":"ALBANY, NY","148":"ALBANY, NY","149":"ALBANY, NY","150":"PENNSYLVANIA, PA","151":"PENNSYLVANIA, PA","152":"PENNSYLVANIA, PA","153":"PENNSYLVANIA, PA","154":"PENNSYLVANIA, PA","155":"PENNSYLVANIA, PA","156":"PENNSYLVANIA, PA","157":"PENNSYLVANIA, PA","158":"PENNSYLVANIA, PA","159":"PENNSYLVANIA, PA","160":"PENNSYLVANIA, PA","161":"PENNSYLVANIA, PA","162":"PENNSYLVANIA, PA","163":"PENNSYLVANIA, PA","164":"PENNSYLVANIA, PA","165":"PENNSYLVANIA, PA","166":"PENNSYLVANIA, PA","167":"PENNSYLVANIA, PA","168":"PENNSYLVANIA, PA","169":"PENNSYLVANIA, PA","170":"PENNSYLVANIA, PA","171":"PENNSYLVANIA, PA","172":"PENNSYLVANIA, PA","173":"WASHINGTON, DC","174":"WASHINGTON, DC","175":"PENNSYLVANIA, PA","176":"PENNSYLVANIA, PA","177":"PENNSYLVANIA, PA","178":"PENNSYLVANIA, PA","179":"PENNSYLVANIA, PA","180":"PENNSYLVANIA, PA","181":"PENNSYLVANIA, PA","182":"PENNSYLVANIA, PA","183":"PENNSYLVANIA, PA","184":"PENNSYLVANIA, PA","185":"PENNSYLVANIA, PA","186":"PENNSYLVANIA, PA","187":"PENNSYLVANIA, PA","188":"PENNSYLVANIA, PA","189":"PHILADELPHIA, PA","190":"PHILADELPHIA, PA","191":"PHILADELPHIA, PA","192":"PHILADELPHIA, PA","193":"PHILADELPHIA, PA","194":"PHILADELPHIA, PA","195":"PENNSYLVANIA, PA","196":"PENNSYLVANIA, PA","197":"PHILADELPHIA, PA","198":"PHILADELPHIA, PA","199":"PHILADELPHIA, PA","200":"WASHINGTON, DC","201":"WASHINGTON, DC","202":"WASHINGTON, DC","203":"WASHINGTON, DC","204":"WASHINGTON, DC","205":"WASHINGTON, DC","206":"WASHINGTON, DC","207":"WASHINGTON, DC","208":"WASHINGTON, DC","209":"WASHINGTON, DC","210":"WASHINGTON, DC","211":"WASHINGTON, DC","212":"WASHINGTON, DC","214":"WASHINGTON, DC","215":"COLUMBUS, OH","216":"PHILADELPHIA, PA","217":"WASHINGTON, DC","218":"PHILADELPHIA, PA","219":"PHILADELPHIA, PA","220":"WASHINGTON, DC","221":"WASHINGTON, DC","222":"WASHINGTON, DC","223":"WASHINGTON, DC","224":"RICHMOND, VA","225":"RICHMOND, VA","226":"RICHMOND, VA","227":"RICHMOND, VA","228":"CHARLOTTE, NC","229":"RICHMOND, VA","230":"RICHMOND, VA","231":"RICHMOND, VA","232":"RICHMOND, VA","233":"PHILADELPHIA, PA","234":"RICHMOND, VA","235":"RICHMOND, VA","236":"RICHMOND, VA","237":"RICHMOND, VA","238":"RICHMOND, VA","239":"CHARLOTTE, NC","240":"CHARLOTTE, NC","241":"CHARLOTTE, NC","242":"LOUISVILLE, KY","243":"CHARLOTTE, NC","244":"CHARLOTTE, NC","245":"CHARLOTTE, NC","246":"LOUISVILLE, KY","247":"LOUISVILLE, KY","248":"LOUISVILLE, KY","249":"LOUISVILLE, KY","250":"LOUISVILLE, KY","251":"LOUISVILLE, KY","252":"LOUISVILLE, KY","253":"LOUISVILLE, KY","254":"COLUMBUS, OH","255":"LOUISVILLE, KY","256":"LOUISVILLE, KY","257":"LOUISVILLE, KY","258":"LOUISVILLE, KY","259":"LOUISVILLE, KY","260":"COLUMBUS, OH","261":"COLUMBUS, OH","262":"COLUMBUS, OH","263":"COLUMBUS, OH","264":"COLUMBUS, OH","265":"COLUMBUS, OH","266":"LOUISVILLE, KY","267":"COLUMBUS, OH","268":"COLUMBUS, OH","270":"CHARLOTTE, NC","271":"CHARLOTTE, NC","272":"CHARLOTTE, NC","273":"CHARLOTTE, NC","274":"CHARLOTTE, NC","275":"RALEIGH, NC","276":"RALEIGH, NC","277":"RALEIGH, NC","278":"RALEIGH, NC","279":"RALEIGH, NC","280":"CHARLOTTE, NC","281":"CHARLOTTE, NC","282":"CHARLOTTE, NC","283":"RALEIGH, NC","284":"RALEIGH, NC","285":"RALEIGH, NC","286":"CHARLOTTE, NC","287":"CHARLOTTE, NC","288":"CHARLOTTE, NC","289":"CHARLOTTE, NC","290":"CHARLESTON, SC","291":"CHARLESTON, SC","292":"CHARLESTON, SC","293":"CHARLESTON, SC","294":"CHARLESTON, SC","295":"RALEIGH, NC","296":"CHARLESTON, SC","297":"CHARLESTON, SC","298":"CHARLESTON, SC","299":"CHARLESTON, SC","300":"ATLANTA E, GA","301":"ATLANTA W, GA","302":"ATLANTA W, GA","303":"ATLANTA W, GA","304":"ATLANTA E, GA","305":"ATLANTA E, GA","306":"ATLANTA E, GA","307":"ATLANTA W, GA","308":"ATLANTA E, GA","309":"ATLANTA E, GA","310":"ATLANTA E, GA","311":"ATLANTA W, GA","312":"ATLANTA E, GA","313":"JACKSONVILLE, FL","314":"JACKSONVILLE, FL","315":"JACKSONVILLE, FL","316":"JACKSONVILLE, FL","317":"JACKSONVILLE, FL","318":"ATLANTA W, GA","319":"ATLANTA W, GA","320":"JACKSONVILLE, FL","321":"PALM BEACH, FL","322":"JACKSONVILLE, FL","323":"JACKSONVILLE, FL","324":"BIRMINGHAM, AL","325":"BIRMINGHAM, AL","326":"JACKSONVILLE, FL","327":"PALM BEACH, FL","328":"PALM BEACH, FL","329":"PALM BEACH, FL","330":"FT LAUDERDALE, FL","331":"FT LAUDERDALE, FL","332":"FT LAUDERDALE, FL","333":"FT LAUDERDALE, FL","334":"PALM BEACH, FL","335":"TAMPA, FL","336":"TAMPA, FL","337":"TAMPA, FL","338":"TAMPA, FL","339":"TAMPA, FL","341":"TAMPA, FL","342":"TAMPA, FL","344":"TAMPA, FL","346":"TAMPA, FL","347":"PALM BEACH, FL","349":"PALM BEACH, FL","350":"BIRMINGHAM, AL","351":"BIRMINGHAM, AL","352":"BIRMINGHAM, AL","354":"BIRMINGHAM, AL","355":"BIRMINGHAM, AL","356":"BIRMINGHAM, AL","357":"BIRMINGHAM, AL","358":"BIRMINGHAM, AL","359":"BIRMINGHAM, AL","360":"BIRMINGHAM, AL","361":"BIRMINGHAM, AL","362":"BIRMINGHAM, AL","363":"BIRMINGHAM, AL","364":"BIRMINGHAM, AL","365":"BIRMINGHAM, AL","366":"BIRMINGHAM, AL","367":"BIRMINGHAM, AL","368":"BIRMINGHAM, AL","369":"BIRMINGHAM, AL","370":"NASHVILLE, TN","371":"NASHVILLE, TN","372":"NASHVILLE, TN","373":"NASHVILLE, TN","374":"ATLANTA W, GA","375":"NASHVILLE, TN","376":"NASHVILLE, TN","377":"NASHVILLE, TN","378":"NASHVILLE, TN","379":"NASHVILLE, TN","380":"NASHVILLE, TN","381":"NASHVILLE, TN","382":"NASHVILLE, TN","383":"NASHVILLE, TN","384":"NASHVILLE, TN","385":"NASHVILLE, TN","386":"NEW ORLEANS, LA","387":"NEW ORLEANS, LA","388":"NEW ORLEANS, LA","389":"NEW ORLEANS, LA","390":"NEW ORLEANS, LA","391":"NEW ORLEANS, LA","392":"NEW ORLEANS, LA","393":"BIRMINGHAM, AL","394":"NEW ORLEANS, LA","395":"NEW ORLEANS, LA","396":"NEW ORLEANS, LA","397":"BIRMINGHAM, AL","398":"ATLANTA W, GA","399":"ATLANTA E, GA","400":"LOUISVILLE, KY","401":"LOUISVILLE, KY","402":"LOUISVILLE, KY","403":"LOUISVILLE, KY","404":"LOUISVILLE, KY","405":"LOUISVILLE, KY","406":"LOUISVILLE, KY","407":"LOUISVILLE, KY","408":"LOUISVILLE, KY","409":"LOUISVILLE, KY","410":"CINCINNATI, OH","411":"LOUISVILLE, KY","412":"LOUISVILLE, KY","413":"LOUISVILLE, KY","414":"LOUISVILLE, KY","415":"LOUISVILLE, KY","416":"LOUISVILLE, KY","417":"LOUISVILLE, KY","418":"LOUISVILLE, KY","420":"SAINT LOUIS, MO","421":"LOUISVILLE, KY","422":"LOUISVILLE, KY","423":"LOUISVILLE, KY","424":"LOUISVILLE, KY","425":"LOUISVILLE, KY","426":"LOUISVILLE, KY","427":"LOUISVILLE, KY","430":"COLUMBUS, OH","431":"COLUMBUS, OH","432":"COLUMBUS, OH","433":"COLUMBUS, OH","434":"CINCINNATI, OH","435":"CINCINNATI, OH","436":"CINCINNATI, OH","437":"COLUMBUS, OH","438":"COLUMBUS, OH","439":"COLUMBUS, OH","440":"COLUMBUS, OH","441":"COLUMBUS, OH","442":"COLUMBUS, OH","443":"COLUMBUS, OH","444":"COLUMBUS, OH","445":"COLUMBUS, OH","446":"COLUMBUS, OH","447":"COLUMBUS, OH","448":"COLUMBUS, OH","449":"COLUMBUS, OH","450":"CINCINNATI, OH","451":"CINCINNATI, OH","452":"CINCINNATI, OH","453":"CINCINNATI, OH","454":"CINCINNATI, OH","455":"CINCINNATI, OH","456":"COLUMBUS, OH","457":"COLUMBUS, OH","458":"CINCINNATI, OH","459":"CINCINNATI, OH","460":"LOUISVILLE, KY","461":"LOUISVILLE, KY","462":"LOUISVILLE, KY","463":"CHICAGO S, IL","464":"CHICAGO S, IL","465":"CHICAGO S, IL","466":"CHICAGO S, IL","467":"CHICAGO S, IL","468":"CHICAGO S, IL","469":"LOUISVILLE, KY","470":"LOUISVILLE, KY","471":"LOUISVILLE, KY","472":"LOUISVILLE, KY","473":"LOUISVILLE, KY","474":"LOUISVILLE, KY","475":"LOUISVILLE, KY","476":"LOUISVILLE, KY","477":"LOUISVILLE, KY","478":"LOUISVILLE, KY","479":"LOUISVILLE, KY","480":"DETROIT N, MI","481":"DETROIT N, MI","482":"DETROIT N, MI","483":"DETROIT N, MI","484":"DETROIT N, MI","485":"DETROIT N, MI","486":"DETROIT N, MI","487":"DETROIT N, MI","488":"DETROIT N, MI","489":"DETROIT N, MI","490":"CHICAGO S, IL","491":"CHICAGO S, IL","492":"CINCINNATI, OH","493":"DETROIT N, MI","494":"DETROIT N, MI","495":"DETROIT N, MI","496":"DETROIT N, MI","497":"DETROIT N, MI","498":"DETROIT N, MI","499":"MILWAUKEE, WI","500":"PEORIA, IL","501":"PEORIA, IL","502":"PEORIA, IL","503":"PEORIA, IL","504":"PEORIA, IL","505":"PEORIA, IL","506":"PEORIA, IL","507":"PEORIA, IL","508":"PEORIA, IL","509":"PEORIA, IL","510":"PEORIA, IL","511":"PEORIA, IL","512":"PEORIA, IL","513":"PEORIA, IL","514":"PEORIA, IL","515":"PEORIA, IL","516":"PEORIA, IL","520":"PEORIA, IL","521":"PEORIA, IL","522":"PEORIA, IL","523":"PEORIA, IL","524":"PEORIA, IL","525":"PEORIA, IL","526":"PEORIA, IL","527":"PEORIA, IL","528":"PEORIA, IL","530":"MILWAUKEE, WI","531":"CHICAGO N, IL","532":"MILWAUKEE, WI","534":"CHICAGO N, IL","535":"MILWAUKEE, WI","537":"MILWAUKEE, WI","538":"MILWAUKEE, WI","539":"MILWAUKEE, WI","540":"MILWAUKEE, WI","541":"MILWAUKEE, WI","542":"MILWAUKEE, WI","543":"MILWAUKEE, WI","544":"MILWAUKEE, WI","545":"MILWAUKEE, WI","546":"MILWAUKEE, WI","547":"MILWAUKEE, WI","548":"MILWAUKEE, WI","549":"MILWAUKEE, WI","550":"MINNEAPOLIS, MN","551":"MINNEAPOLIS, MN","553":"MINNEAPOLIS, MN","554":"MINNEAPOLIS, MN","555":"MINNEAPOLIS, MN","556":"MINNEAPOLIS, MN","557":"MINNEAPOLIS, MN","558":"MINNEAPOLIS, MN","559":"MILWAUKEE, WI","560":"MINNEAPOLIS, MN","561":"MINNEAPOLIS, MN","562":"MINNEAPOLIS, MN","563":"MINNEAPOLIS, MN","564":"MINNEAPOLIS, MN","565":"MINNEAPOLIS, MN","566":"MINNEAPOLIS, MN","567":"MINNEAPOLIS, MN","570":"MINNEAPOLIS, MN","571":"MINNEAPOLIS, MN","572":"MINNEAPOLIS, MN","573":"MINNEAPOLIS, MN","574":"MINNEAPOLIS, MN","575":"MINNEAPOLIS, MN","576":"MINNEAPOLIS, MN","577":"MINNEAPOLIS, MN","580":"SALT LAKE CITY, UT","581":"SALT LAKE CITY, UT","582":"SALT LAKE CITY, UT","583":"SALT LAKE CITY, UT","584":"SALT LAKE CITY, UT","585":"SALT LAKE CITY, UT","586":"SALT LAKE CITY, UT","587":"SALT LAKE CITY, UT","588":"SALT LAKE CITY, UT","590":"SALT LAKE CITY, UT","591":"SALT LAKE CITY, UT","592":"SALT LAKE CITY, UT","593":"SALT LAKE CITY, UT","594":"SALT LAKE CITY, UT","595":"SALT LAKE CITY, UT","596":"SALT LAKE CITY, UT","597":"SALT LAKE CITY, UT","598":"SALT LAKE CITY, UT","599":"SALT LAKE CITY, UT","600":"CHICAGO N, IL","601":"CHICAGO N, IL","602":"CHICAGO N, IL","603":"CHICAGO S, IL","604":"CHICAGO S, IL","605":"CHICAGO S, IL","606":"CHICAGO N, IL","607":"CHICAGO N, IL","608":"CHICAGO S, IL","609":"PEORIA, IL","610":"CHICAGO N, IL","611":"CHICAGO N, IL","612":"PEORIA, IL","613":"PEORIA, IL","614":"PEORIA, IL","615":"PEORIA, IL","616":"PEORIA, IL","617":"PEORIA, IL","618":"PEORIA, IL","619":"PEORIA, IL","620":"PEORIA, IL","622":"SAINT LOUIS, MO","623":"PEORIA, IL","624":"PEORIA, IL","625":"PEORIA, IL","626":"PEORIA, IL","627":"PEORIA, IL","628":"SAINT LOUIS, MO","629":"SAINT LOUIS, MO","630":"SAINT LOUIS, MO","631":"SAINT LOUIS, MO","633":"SAINT LOUIS, MO","634":"SAINT LOUIS, MO","635":"SAINT LOUIS, MO","636":"SAINT LOUIS, MO","637":"SAINT LOUIS, MO","638":"SAINT LOUIS, MO","639":"SAINT LOUIS, MO","640":"WICHITA, KS","641":"WICHITA, KS","644":"SAINT LOUIS, MO","645":"WICHITA, KS","646":"SAINT LOUIS, MO","647":"SAINT LOUIS, MO","648":"SAINT LOUIS, MO","649":"WICHITA, KS","650":"SAINT LOUIS, MO","651":"SAINT LOUIS, MO","652":"SAINT LOUIS, MO","653":"SAINT LOUIS, MO","654":"SAINT LOUIS, MO","655":"SAINT LOUIS, MO","656":"SAINT LOUIS, MO","657":"SAINT LOUIS, MO","658":"SAINT LOUIS, MO","660":"WICHITA, KS","661":"WICHITA, KS","662":"WICHITA, KS","664":"WICHITA, KS","665":"WICHITA, KS","666":"WICHITA, KS","667":"WICHITA, KS","668":"WICHITA, KS","669":"WICHITA, KS","670":"WICHITA, KS","671":"WICHITA, KS","672":"WICHITA, KS","673":"WICHITA, KS","674":"WICHITA, KS","675":"WICHITA, KS","676":"WICHITA, KS","677":"WICHITA, KS","678":"WICHITA, KS","679":"WICHITA, KS","680":"MINNEAPOLIS, MN","681":"MINNEAPOLIS, MN","683":"WICHITA, KS","684":"WICHITA, KS","685":"WICHITA, KS","686":"MINNEAPOLIS, MN","687":"MINNEAPOLIS, MN","688":"WICHITA, KS","689":"WICHITA, KS","690":"WICHITA, KS","691":"MINNEAPOLIS, MN","692":"MINNEAPOLIS, MN","693":"MINNEAPOLIS, MN","700":"NEW ORLEANS, LA","701":"NEW ORLEANS, LA","703":"NEW ORLEANS, LA","704":"NEW ORLEANS, LA","705":"NEW ORLEANS, LA","706":"HOUSTON, TX","707":"NEW ORLEANS, LA","708":"NEW ORLEANS, LA","710":"NEW ORLEANS, LA","711":"NEW ORLEANS, LA","712":"NEW ORLEANS, LA","713":"NEW ORLEANS, LA","714":"NEW ORLEANS, LA","716":"TULSA, OK","717":"TULSA, OK","718":"TULSA, OK","719":"TULSA, OK","720":"TULSA, OK","721":"TULSA, OK","722":"TULSA, OK","723":"SAINT LOUIS, MO","724":"SAINT LOUIS, MO","725":"SAINT LOUIS, MO","726":"SAINT LOUIS, MO","727":"SAINT LOUIS, MO","728":"TULSA, OK","729":"TULSA, OK","730":"TULSA, OK","731":"TULSA, OK","733":"FORT WORTH, TX","734":"TULSA, OK","735":"TULSA, OK","736":"TULSA, OK","737":"TULSA, OK","738":"TULSA, OK","739":"TULSA, OK","740":"TULSA, OK","741":"TULSA, OK","743":"TULSA, OK","744":"TULSA, OK","745":"TULSA, OK","746":"TULSA, OK","747":"TULSA, OK","748":"TULSA, OK","749":"TULSA, OK","750":"DALLAS, TX","751":"DALLAS, TX","752":"DALLAS, TX","753":"DALLAS, TX","754":"DALLAS, TX","755":"DALLAS, TX","756":"DALLAS, TX","757":"DALLAS, TX","758":"DALLAS, TX","759":"DALLAS, TX","760":"DALLAS, TX","761":"DALLAS, TX","762":"DALLAS, TX","763":"TULSA, OK","764":"TULSA, OK","765":"FORT WORTH, TX","766":"DALLAS, TX","767":"FORT WORTH, TX","768":"FORT WORTH, TX","769":"FORT WORTH, TX","770":"HOUSTON, TX","772":"HOUSTON, TX","773":"HOUSTON, TX","774":"HOUSTON, TX","775":"HOUSTON, TX","776":"HOUSTON, TX","777":"HOUSTON, TX","778":"FORT WORTH, TX","779":"SAN ANTONIO, TX","780":"SAN ANTONIO, TX","781":"SAN ANTONIO, TX","782":"SAN ANTONIO, TX","783":"SAN ANTONIO, TX","784":"SAN ANTONIO, TX","785":"SAN ANTONIO, TX","786":"FORT WORTH, TX","787":"FORT WORTH, TX","788":"SAN ANTONIO, TX","789":"SAN ANTONIO, TX","790":"TULSA, OK","791":"TULSA, OK","792":"TULSA, OK","793":"TULSA, OK","794":"TULSA, OK","795":"TULSA, OK","796":"TULSA, OK","797":"FORT WORTH, TX","798":"FORT WORTH, TX","799":"FORT WORTH, TX","800":"DENVER, CO","801":"DENVER, CO","802":"DENVER, CO","803":"DENVER, CO","804":"DENVER, CO","805":"DENVER, CO","806":"DENVER, CO","807":"DENVER, CO","808":"DENVER, CO","809":"DENVER, CO","810":"DENVER, CO","811":"DENVER, CO","812":"DENVER, CO","813":"DENVER, CO","814":"DENVER, CO","815":"DENVER, CO","816":"DENVER, CO","820":"SALT LAKE CITY, UT","821":"SALT LAKE CITY, UT","822":"SALT LAKE CITY, UT","823":"SALT LAKE CITY, UT","824":"SALT LAKE CITY, UT","825":"SALT LAKE CITY, UT","826":"SALT LAKE CITY, UT","827":"SALT LAKE CITY, UT","828":"SALT LAKE CITY, UT","829":"SALT LAKE CITY, UT","830":"SALT LAKE CITY, UT","831":"SALT LAKE CITY, UT","832":"SALT LAKE CITY, UT","833":"SALT LAKE CITY, UT","834":"SALT LAKE CITY, UT","835":"SALT LAKE CITY, UT","836":"PORTLAND, OR","837":"PORTLAND, OR","838":"SALT LAKE CITY, UT","840":"DENVER, CO","841":"DENVER, CO","842":"DENVER, CO","843":"DENVER, CO","844":"DENVER, CO","845":"DENVER, CO","846":"DENVER, CO","847":"DENVER, CO","850":"PHOENIX W, AZ","851":"PHOENIX W, AZ","852":"PHOENIX W, AZ","853":"PHOENIX W, AZ","855":"PHOENIX E, AZ","856":"PHOENIX W, AZ","857":"PHOENIX W, AZ","859":"PHOENIX E, AZ","860":"PHOENIX E, AZ","863":"PHOENIX W, AZ","864":"PHOENIX W, AZ","865":"PHOENIX E, AZ","870":"PHOENIX E, AZ","871":"PHOENIX E, AZ","873":"PHOENIX E, AZ","874":"PHOENIX E, AZ","875":"PHOENIX E, AZ","876":"PHOENIX E, AZ","877":"PHOENIX E, AZ","878":"PHOENIX E, AZ","879":"PHOENIX E, AZ","880":"PHOENIX E, AZ","881":"PHOENIX E, AZ","882":"PHOENIX E, AZ","883":"PHOENIX E, AZ","884":"PHOENIX E, AZ","885":"FORT WORTH, TX","890":"SAN FRANCISCO, CA","891":"SAN FRANCISCO, CA","893":"SACRAMENTO, CA","894":"SACRAMENTO, CA","895":"SACRAMENTO, CA","897":"SACRAMENTO, CA","898":"SACRAMENTO, CA","900":"LOS ANGELES W, CA","901":"LOS ANGELES E, CA","902":"LOS ANGELES W, CA","903":"LOS ANGELES W, CA","904":"LOS ANGELES W, CA","905":"LOS ANGELES W, CA","906":"ORANGE COUNTY, CA","907":"ORANGE COUNTY, CA","908":"ORANGE COUNTY, CA","910":"LOS ANGELES E, CA","911":"LOS ANGELES E, CA","912":"LOS ANGELES E, CA","913":"LOS ANGELES E, CA","914":"LOS ANGELES E, CA","915":"LOS ANGELES E, CA","916":"LOS ANGELES E, CA","917":"INLAND EMPIRE, CA","918":"LOS ANGELES W, CA","919":"PHOENIX W, AZ","920":"PHOENIX W, AZ","921":"PHOENIX W, AZ","922":"PHOENIX W, AZ","923":"INLAND EMPIRE, CA","924":"INLAND EMPIRE, CA","925":"INLAND EMPIRE, CA","926":"ORANGE COUNTY, CA","927":"ORANGE COUNTY, CA","928":"ORANGE COUNTY, CA","930":"LOS ANGELES E, CA","931":"LOS ANGELES W, CA","932":"SAN JOSE, CA","933":"INLAND EMPIRE, CA","934":"LOS ANGELES W, CA","935":"INLAND EMPIRE, CA","936":"SAN JOSE, CA","937":"SAN JOSE, CA","938":"SAN JOSE, CA","939":"SAN JOSE, CA","940":"SAN FRANCISCO, CA","941":"SAN FRANCISCO, CA","942":"SACRAMENTO, CA","943":"SAN JOSE, CA","944":"SAN FRANCISCO, CA","945":"SAN FRANCISCO, CA","946":"SAN FRANCISCO, CA","947":"SAN FRANCISCO, CA","948":"SAN FRANCISCO, CA","949":"SAN FRANCISCO, CA","950":"SAN JOSE, CA","951":"SAN JOSE, CA","952":"SACRAMENTO, CA","953":"SACRAMENTO, CA","954":"SAN FRANCISCO, CA","955":"SACRAMENTO, CA","956":"SACRAMENTO, CA","957":"SACRAMENTO, CA","958":"SACRAMENTO, CA","959":"SACRAMENTO, CA","960":"SACRAMENTO, CA","961":"SACRAMENTO, CA","970":"PORTLAND, OR","971":"PORTLAND, OR","972":"PORTLAND, OR","973":"PORTLAND, OR","974":"PORTLAND, OR","975":"PORTLAND, OR","976":"PORTLAND, OR","977":"PORTLAND, OR","978":"PORTLAND, OR","979":"PORTLAND, OR","980":"SEATTLE, WA","981":"SEATTLE, WA","982":"SEATTLE, WA","983":"SEATTLE, WA","984":"SEATTLE, WA","985":"SEATTLE, WA","986":"PORTLAND, OR","988":"SEATTLE, WA","989":"SEATTLE, WA","990":"SALT LAKE CITY, UT","991":"SEATTLE, WA","992":"SALT LAKE CITY, UT","993":"PORTLAND, OR","994":"PORTLAND, OR","995":"SEATTLE, WA","996":"SEATTLE, WA","997":"SEATTLE, WA","998":"SEATTLE, WA","999":"SEATTLE, WA"};
+
+const FIPS_TERR={"12":"TAMPA, FL","05":"TULSA, OK","26":"DETROIT N, MI","40":"TULSA, OK","42":"PENNSYLVANIA, PA","34":"NEW JERSEY, NJ","39":"COLUMBUS, OH","09":"BOSTON, MA","32":"SAN FRANCISCO, CA","22":"NEW ORLEANS, LA","01":"BIRMINGHAM, AL","06":"SAN FRANCISCO, CA","24":"WASHINGTON, DC","45":"CHARLESTON, SC","08":"DENVER, CO","54":"COLUMBUS, OH","20":"WICHITA, KS","23":"BOSTON, MA","51":"RICHMOND, VA","53":"SEATTLE, WA","49":"DENVER, CO","48":"DALLAS, TX","04":"PHOENIX W, AZ","17":"CHICAGO N, IL","55":"MILWAUKEE, WI","36":"ALBANY, NY","28":"NEW ORLEANS, LA","15":"INLAND EMPIRE, CA","21":"LOUISVILLE, KY","13":"ATLANTA E, GA","29":"SAINT LOUIS, MO","47":"NASHVILLE, TN","37":"CHARLOTTE, NC","46":"MINNEAPOLIS, MN","18":"LOUISVILLE, KY","10":"PHILADELPHIA, PA","27":"MINNEAPOLIS, MN","11":"WASHINGTON, DC","25":"BOSTON, MA","19":"PEORIA, IL","44":"BOSTON, MA","02":"SEATTLE, WA","35":"PHOENIX E, AZ","31":"MINNEAPOLIS, MN","41":"PORTLAND, OR","38":"SALT LAKE CITY, UT","16":"SALT LAKE CITY, UT","50":"BOSTON, MA","33":"BOSTON, MA","30":"SALT LAKE CITY, UT","56":"SALT LAKE CITY, UT"};
+
+const IDX_DESCS=["","25% ZIP Pop + 75% Start Forms","50% Prevalence + 50% Start Forms","100% Patient Start Forms","100% Completed Start Forms"];
+
+const terrMap={};
+TERRITORIES.forEach(t=>{terrMap[t.name]=t;});
+
+let activeDistrict='ALL', activeIdx=3, heatIdx=3, selectedT=null, zoom, countyLoaded=false;
+
+function getIdx(t,i){return t['idx'+(i||activeIdx)];}
+function isVacant(t){return t.rep_name.startsWith('Vacant');}
+
+function buildLegend(){
+  const vis=activeDistrict==='ALL'?TERRITORIES:TERRITORIES.filter(t=>t.district===activeDistrict);
+  const sorted=[...vis].sort((a,b)=>getIdx(b)-getIdx(a));
+  document.getElementById('leg-list').innerHTML=sorted.map(t=>`
+    <div class="leg-item${selectedT===t.name?' hi':''}" onclick="selectT('${t.name.replace(/'/g,"\\'")}')">
+      <span class="leg-dot" style="background:${t.color}"></span>
+      <span class="leg-name">${t.name}</span>
+      <span class="leg-num">${getIdx(t)}</span>
+    </div>`).join('');
+}
+
+function showDetail(name){
+  const t=terrMap[name];
+  if(!t){document.getElementById('det-panel').innerHTML='<div style="font-size:10px;color:#aaa;text-align:center;padding:20px 0">Hover or click a county to explore</div>';return;}
+  const mx=[0,Math.max(...TERRITORIES.map(x=>x.idx1)),Math.max(...TERRITORIES.map(x=>x.idx2)),Math.max(...TERRITORIES.map(x=>x.idx3)),Math.max(...TERRITORIES.map(x=>x.idx4))];
+  document.getElementById('det-panel').innerHTML=`
+    <div class="det-name">${t.name}</div>
+    <div class="det-sub">${t.district} · ${t.rep_id}</div>
+    ${isVacant(t)?'<span class="vac">Vacant territory</span>':''}
+    <div class="det-row"><span class="det-k">OAM</span><span class="det-v">${t.rep_name}</span></div>
+    <div class="det-row"><span class="det-k">HCPs</span><span class="det-v">${t.hco_count}</span></div>
+    <div class="det-row"><span class="det-k">ZIPs</span><span class="det-v">${t.zip_count.toLocaleString()}</span></div>
+    <div style="margin:8px 0 4px;font-size:9px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.5px">All 4 indices</div>
+    ${[1,2,3,4].map(i=>{
+      const v=t['idx'+i],pct=Math.round(v/mx[i]*100);
+      return`<div class="idx-r"><span style="font-size:9px;color:#888;min-width:34px">Idx ${i}</span>
+        <div class="idx-bg"><div class="idx-f" style="width:${pct}%;background:${t.color}"></div></div>
+        <span style="font-size:10px;font-weight:600;min-width:40px;text-align:right">${v}</span></div>`;
+    }).join('')}`;
+}
+
+function selectT(name){
+  selectedT=name;
+  showDetail(name);
+  buildLegend();
+  if(countyLoaded){
+    d3.select('#county-svg').selectAll('path.county')
+      .attr('fill',d=>{
+        const z3=String(d.id).padStart(5,'0').slice(0,3);
+        const tn=ZIP3_TERR[z3];
+        if(!tn) return '#e0e0e0';
+        const t=terrMap[tn];
+        if(!t) return '#e0e0e0';
+        if(activeDistrict!=='ALL'&&t.district!==activeDistrict) return '#e8e8e8';
+        return selectedT&&tn!==selectedT?t.color+'44':t.color+'cc';
+      })
+      .attr('stroke-width',d=>{
+        const z3=String(d.id).padStart(5,'0').slice(0,3);
+        return ZIP3_TERR[z3]===selectedT?1:0.3;
+      });
+  }
+}
+
+function setDistrict(d,btn){
+  activeDistrict=d;
+  document.querySelectorAll('.d-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  selectT(selectedT);
+  buildLegend();
+}
+
+function setIdx(n,btn){
+  activeIdx=n;
+  document.querySelectorAll('#view-county .i-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('idx-desc').textContent=IDX_DESCS[n];
+  buildLegend();
+  if(selectedT) showDetail(selectedT);
+}
+
+function resetZoom(){
+  const svg=d3.select('#county-svg');
+  svg.transition().duration(500).call(zoom.transform,d3.zoomIdentity);
+}
+
+function positionTT(e,pane,ttId){
+  const r=document.getElementById(pane).getBoundingClientRect();
+  const tt=document.getElementById(ttId);
+  let x=e.clientX-r.left+14, y=e.clientY-r.top-10;
+  if(x+230>r.width) x=e.clientX-r.left-240;
+  if(y+200>r.height) y=e.clientY-r.top-180;
+  tt.style.left=x+'px'; tt.style.top=y+'px';
+}
+
+function initMaps(us){
+  const cp=document.getElementById('county-pane');
+  const W=cp.clientWidth,H=cp.clientHeight;
+  const proj=d3.geoAlbersUsa().scale(900).translate([W/2,H/2]);
+  const path=d3.geoPath(proj);
+
+  // County map
+  const svg=d3.select('#county-svg').attr('width',W).attr('height',H);
+  const g=svg.append('g');
+  zoom=d3.zoom().scaleExtent([1,10]).on('zoom',e=>g.attr('transform',e.transform));
+  svg.call(zoom);
+
+  g.selectAll('path.county')
+    .data(topojson.feature(us,us.objects.counties).features)
+    .join('path').attr('class','county').attr('d',path)
+    .attr('stroke','rgba(255,255,255,0.6)').attr('stroke-width',0.3)
+    .attr('fill',d=>{
+      const z3=String(d.id).padStart(5,'0').slice(0,3);
+      const tn=ZIP3_TERR[z3];
+      if(!tn) return '#e0e0e0';
+      const t=terrMap[tn];
+      return t?t.color+'cc':'#e0e0e0';
+    })
+    .on('mouseover',function(e,d){
+      const z3=String(d.id).padStart(5,'0').slice(0,3);
+      const tn=ZIP3_TERR[z3];
+      if(!tn){document.getElementById('county-tt').style.display='none';return;}
+      const t=terrMap[tn];
+      if(!t) return;
+      const tt=document.getElementById('county-tt');
+      tt.style.display='block';
+      tt.innerHTML=`<div class="tt-name">${t.name}</div>
+        <div class="tt-d">${t.district}${isVacant(t)?' · <span style="color:#c0392b">VACANT</span>':''}</div>
+        <div class="tt-r"><span class="tt-k">OAM</span><span class="tt-v">${t.rep_name}</span></div>
+        <div class="tt-r"><span class="tt-k">HCPs</span><span class="tt-v">${t.hco_count}</span></div>
+        <div class="tt-r"><span class="tt-k">ZIPs</span><span class="tt-v">${t.zip_count.toLocaleString()}</span></div>
+        <div class="tt-sep"></div>
+        ${[1,2,3,4].map(i=>`<div class="tt-r"><span class="tt-k">Index ${i}</span><span class="tt-v">${t['idx'+i]}</span></div>`).join('')}`;
+      positionTT(e,'county-pane','county-tt');
+    })
+    .on('mouseout',()=>document.getElementById('county-tt').style.display='none')
+    .on('click',(e,d)=>{
+      const z3=String(d.id).padStart(5,'0').slice(0,3);
+      if(ZIP3_TERR[z3]) selectT(ZIP3_TERR[z3]);
+    });
+
+  g.append('path')
+    .datum(topojson.mesh(us,us.objects.states,(a,b)=>a!==b))
+    .attr('fill','none').attr('stroke','rgba(255,255,255,0.9)').attr('stroke-width',1.2).attr('d',path);
+
+  document.getElementById('county-loading').style.display='none';
+  countyLoaded=true;
+
+  // Heatmap
+  const hp=document.getElementById('heat-pane');
+  const HW=hp.clientWidth,HH=hp.clientHeight;
+  const proj2=d3.geoAlbersUsa().scale(900).translate([HW/2,HH/2]);
+  const path2=d3.geoPath(proj2);
+  const stateFeats=topojson.feature(us,us.objects.states).features;
+
+  function getStateClr(fips){
+    const tn=FIPS_TERR[fips];
+    if(!tn) return '#ddd';
+    const t=terrMap[tn];
+    if(!t) return '#ddd';
+    const vals=TERRITORIES.map(x=>x['idx'+heatIdx]);
+    const mn=Math.min(...vals),mx2=Math.max(...vals);
+    const norm=(t['idx'+heatIdx]-mn)/(mx2-mn);
+    return d3.interpolateRgb('#e8f4f8',t.color)(norm);
+  }
+
+  const hsvg=d3.select('#heat-svg').attr('width',HW).attr('height',HH);
+  hsvg.selectAll('path.state')
+    .data(stateFeats)
+    .join('path').attr('class','state').attr('d',path2)
+    .attr('stroke','white').attr('stroke-width',0.8)
+    .attr('fill',d=>getStateClr(String(d.id).padStart(2,'0')))
+    .on('mouseover',function(e,d){
+      const fips=String(d.id).padStart(2,'0');
+      const tn=FIPS_TERR[fips];
+      if(!tn){document.getElementById('heat-tt').style.display='none';return;}
+      const t=terrMap[tn];
+      if(!t) return;
+      const tt=document.getElementById('heat-tt');
+      tt.style.display='block';
+      tt.innerHTML=`<div class="tt-name">${t.name}</div>
+        <div class="tt-d">${t.district}</div>
+        <div class="tt-r"><span class="tt-k">Index ${heatIdx}</span><span class="tt-v">${t['idx'+heatIdx]}</span></div>
+        <div class="tt-r"><span class="tt-k">HCPs</span><span class="tt-v">${t.hco_count}</span></div>
+        <div class="tt-r"><span class="tt-k">ZIPs</span><span class="tt-v">${t.zip_count.toLocaleString()}</span></div>`;
+      positionTT(e,'heat-pane','heat-tt');
+    })
+    .on('mouseout',()=>document.getElementById('heat-tt').style.display='none')
+    .on('click',(e,d)=>{
+      const tn=FIPS_TERR[String(d.id).padStart(2,'0')];
+      if(tn) selectT(tn);
+    });
+
+  hsvg.append('path')
+    .datum(topojson.mesh(us,us.objects.states,(a,b)=>a!==b))
+    .attr('fill','none').attr('stroke','white').attr('stroke-width',1.5).attr('d',path2);
+
+  document.getElementById('heat-loading').style.display='none';
+  window._hsvg=hsvg; window._getStateClr=getStateClr;
+  buildHeatLegend(); buildHeatRanking();
+}
+
+function buildHeatLegend(){
+  const vals=TERRITORIES.map(t=>t['idx'+heatIdx]);
+  const mn=Math.round(Math.min(...vals)),mx=Math.round(Math.max(...vals));
+  const steps=8;
+  document.getElementById('heat-legend').innerHTML=`
+    <div class="hl-title">Index ${heatIdx} score</div>
+    <div class="hl-bar">${Array.from({length:steps},(_,i)=>`<span class="hl-seg" style="background:${d3.interpolateRgb('#e8f4f8','#1565c0')(i/(steps-1))}"></span>`).join('')}</div>
+    <div class="hl-range"><span>${mn}</span><span>${mx}</span></div>`;
+}
+
+function buildHeatRanking(){
+  const sorted=[...TERRITORIES].sort((a,b)=>b['idx'+heatIdx]-a['idx'+heatIdx]);
+  document.getElementById('heat-ranking').innerHTML=sorted.map((t,i)=>`
+    <div class="leg-item" onclick="selectT('${t.name.replace(/'/g,"\\'")}')">
+      <span style="font-size:9px;color:#aaa;min-width:16px">${i+1}</span>
+      <span class="leg-dot" style="background:${t.color}"></span>
+      <span class="leg-name">${t.name}</span>
+      <span class="leg-num">${t['idx'+heatIdx]}</span>
+    </div>`).join('');
+}
+
+function setHeatIdx(n,btn){
+  heatIdx=n;
+  document.querySelectorAll('#view-heat .i-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('heat-idx-desc').textContent=IDX_DESCS[n]+' — dominant territory per state';
+  if(window._hsvg){
+    window._hsvg.selectAll('path.state').attr('fill',d=>window._getStateClr(String(d.id).padStart(2,'0')));
+  }
+  buildHeatLegend(); buildHeatRanking();
+}
+
+function switchTab(tab,btn){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+tab).classList.add('active');
+}
+
+buildLegend();
+d3.json('https://cdn.jsdelivr.net/npm/us-atlas@3/counties-10m.json')
+  .then(initMaps)
+  .catch(()=>{
+    ['county-loading','heat-loading'].forEach(id=>{
+      document.getElementById(id).innerHTML='<div style="color:#c0392b;font-size:12px;padding:20px;text-align:center">Could not load map data.<br>Check your internet connection.</div>';
+    });
+  });
+</script>
+</body>
+</html>

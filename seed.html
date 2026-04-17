@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TerritoryAlign — Data Seed</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f7;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.card{background:#fff;border-radius:16px;border:1px solid #e0e0e0;padding:2rem;width:520px;max-width:100%}
+h1{font-size:18px;font-weight:700;margin-bottom:4px}
+.sub{font-size:12px;color:#888;margin-bottom:20px}
+.step{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid #f0f0f0}
+.step:last-child{border-bottom:none}
+.sn{width:24px;height:24px;border-radius:50%;background:#f0f0f0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px}
+.sn.done{background:#e8f8f0;color:#1a7a3c}
+.sn.active{background:#e8f0fe;color:#0071e3;animation:pulse 1s infinite}
+.sn.err{background:#fde8e8;color:#c0392b}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.si{flex:1}
+.st{font-size:13px;font-weight:600;margin-bottom:2px}
+.sd{font-size:11px;color:#888}
+.sr{font-size:11px;margin-top:4px;padding:4px 8px;border-radius:6px}
+.sr.ok{background:#e8f8f0;color:#1a7a3c}
+.sr.err{background:#fde8e8;color:#c0392b}
+.pw{margin:20px 0 6px;background:#f0f0f0;border-radius:8px;height:12px;overflow:hidden}
+.pb{height:100%;background:linear-gradient(90deg,#0071e3,#34c4ff);border-radius:8px;width:0%;transition:width .2s}
+.pl{font-size:11px;color:#666;text-align:center;margin-bottom:16px;min-height:16px;font-weight:500}
+.btn{width:100%;padding:12px;font-size:14px;font-weight:600;font-family:inherit;background:#0071e3;color:#fff;border:none;border-radius:10px;cursor:pointer}
+.btn:disabled{background:#aaa;cursor:not-allowed}
+.counts{display:none;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px}
+.cc{background:#f5f5f7;border-radius:8px;padding:10px 14px;text-align:center}
+.cl{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.3px}
+.cv{font-size:22px;font-weight:700;margin-top:2px;color:#0071e3}
+.ct{font-size:10px;color:#aaa}
+.warn{background:#fff3e0;border:1px solid #ffe0b2;border-radius:8px;padding:10px 14px;font-size:11px;color:#8a5000;margin-bottom:16px}
+.go{text-align:center;margin-top:12px;display:none}
+.go a{font-size:14px;color:#0071e3;text-decoration:none;font-weight:600}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>🗄 TerritoryAlign Data Seed</h1>
+  <div class="sub">50 territories · 41,521 ZIPs · 7,125 HCPs · 56 users</div>
+  <div class="warn">⚠ This clears existing data and reloads from scratch. Takes ~3 minutes.</div>
+
+  <div id="steps">
+    <div class="step"><div class="sn" id="n0">1</div><div class="si"><div class="st">Base data</div><div class="sd">Districts, territories, users, conflicts</div><div id="r0" style="display:none" class="sr"></div></div></div>
+    <div class="step"><div class="sn" id="n1">2</div><div class="si"><div class="st">ZIP mappings</div><div class="sd">41,521 ZIPs — 416 batches of 100 (5 parallel)</div><div id="r1" style="display:none" class="sr"></div></div></div>
+    <div class="step"><div class="sn" id="n2">3</div><div class="si"><div class="st">HCP records</div><div class="sd">7,125 HCPs — 72 batches of 100 (5 parallel)</div><div id="r2" style="display:none" class="sr"></div></div></div>
+    <div class="step"><div class="sn" id="n3">4</div><div class="si"><div class="st">Finalize</div><div class="sd">Compute territory aggregates</div><div id="r3" style="display:none" class="sr"></div></div></div>
+  </div>
+
+  <div class="pw"><div class="pb" id="pb"></div></div>
+  <div class="pl" id="pl">Ready</div>
+
+  <div class="counts" id="counts">
+    <div class="cc"><div class="cl">Territories</div><div class="cv" id="c-t">—</div><div class="ct">of 50</div></div>
+    <div class="cc"><div class="cl">ZIPs</div><div class="cv" id="c-z">—</div><div class="ct">of 41,521</div></div>
+    <div class="cc"><div class="cl">HCPs</div><div class="cv" id="c-h">—</div><div class="ct">of 7,125</div></div>
+    <div class="cc"><div class="cl">Users</div><div class="cv" id="c-u">—</div><div class="ct">of 56</div></div>
+  </div>
+
+  <button class="btn" id="btn" onclick="run()">▶ Start data load</button>
+  <div class="go" id="go"><a href="/pharma_tat_complete.html">→ Open TerritoryAlign</a></div>
+</div>
+
+<script>
+const API = 'https://territory-align-api.onrender.com';
+const ZIP_TOTAL = 416;
+const HCP_TOTAL = 72;
+const CONCURRENCY = 5;
+let done = 0;
+const TOTAL = 1 + ZIP_TOTAL + HCP_TOTAL + 1;
+
+const $ = id => document.getElementById(id);
+
+function setStep(n, state, msg) {
+  const el = $('n'+n);
+  el.className = 'sn ' + (state==='done'?'done':state==='err'?'err':'active');
+  el.textContent = state==='done' ? '✓' : state==='err' ? '✗' : (n+1);
+  if (msg !== undefined) {
+    const r = $('r'+n);
+    r.textContent = msg;
+    r.className = 'sr ' + (state==='err'?'err':'ok');
+    r.style.display = 'block';
+  }
+}
+
+function prog(pct, label) {
+  $('pb').style.width = pct + '%';
+  $('pl').textContent = label;
+}
+
+async function post(path) {
+  const r = await fetch(API + path, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    signal: AbortSignal.timeout(25000)
+  });
+  const d = await r.json();
+  if (!r.ok) throw new Error(d.error || 'HTTP '+r.status);
+  return d;
+}
+
+// Run batches with concurrency limit
+async function runBatches(prefix, total, onProgress) {
+  let next = 0;
+  let errors = 0;
+
+  async function worker() {
+    while (next < total) {
+      const i = next++;
+      try {
+        await post(`/seed/${prefix}/${i}`);
+        done++;
+        onProgress(i);
+      } catch(e) {
+        errors++;
+        console.warn(`Batch ${prefix}/${i} failed:`, e.message);
+        // Retry once
+        try {
+          await new Promise(r => setTimeout(r, 1000));
+          await post(`/seed/${prefix}/${i}`);
+          done++;
+          onProgress(i);
+          errors--;
+        } catch(e2) {
+          console.error(`Batch ${prefix}/${i} retry failed:`, e2.message);
+        }
+      }
+    }
+  }
+
+  const workers = Array(CONCURRENCY).fill(null).map(() => worker());
+  await Promise.all(workers);
+  return errors;
+}
+
+async function run() {
+  const btn = $('btn');
+  btn.disabled = true;
+  btn.textContent = 'Loading... do not close this page';
+  done = 0;
+
+  try {
+    // Step 1: Base
+    setStep(0, 'active');
+    prog(0, 'Loading base data...');
+    const base = await post('/seed/base');
+    setStep(0, 'done', base.message);
+    done++;
+    prog(Math.round(done/TOTAL*100), 'Base data loaded ✓');
+
+    // Step 2: ZIPs (parallel)
+    setStep(1, 'active');
+    await runBatches('zips', ZIP_TOTAL, (i) => {
+      const loaded = Math.min((i+1)*100, 41521);
+      prog(Math.round(done/TOTAL*100), `ZIPs: ${loaded.toLocaleString()} / 41,521`);
+    });
+    setStep(1, 'done', '41,521 ZIPs loaded ✓');
+
+    // Step 3: HCPs (parallel)
+    setStep(2, 'active');
+    await runBatches('hcps', HCP_TOTAL, (i) => {
+      const loaded = Math.min((i+1)*100, 7125);
+      prog(Math.round(done/TOTAL*100), `HCPs: ${loaded.toLocaleString()} / 7,125`);
+    });
+    setStep(2, 'done', '7,125 HCPs loaded ✓');
+
+    // Step 4: Finalize
+    setStep(3, 'active');
+    prog(Math.round(done/TOTAL*100), 'Computing territory aggregates...');
+    const fin = await post('/seed/finalize');
+    done++;
+    setStep(3, 'done', 'Territory scores computed ✓');
+    prog(100, '✓ All data loaded successfully!');
+
+    // Show counts
+    const c = fin.counts;
+    $('counts').style.display = 'grid';
+    $('c-t').textContent = c.territories;
+    $('c-z').textContent = parseInt(c.zips).toLocaleString();
+    $('c-h').textContent = parseInt(c.hcps).toLocaleString();
+    $('c-u').textContent = c.users;
+
+    btn.textContent = '✓ Complete!';
+    btn.style.background = '#1a7a3c';
+    $('go').style.display = 'block';
+
+  } catch(err) {
+    $('pl').textContent = '✗ Error: ' + err.message;
+    btn.disabled = false;
+    btn.textContent = 'Retry';
+    btn.style.background = '#c0392b';
+  }
+}
+</script>
+</body>
+</html>
