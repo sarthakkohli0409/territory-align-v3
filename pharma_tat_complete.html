@@ -746,6 +746,20 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);height:100vh
 .sb-nav::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 .sb-nav::-webkit-scrollbar-track{background:transparent}
 .sf{flex-shrink:0;padding:12px 14px;border-top:1px solid var(--border)}
+
+/* ── Request workflow ──────────────────────────────────────── */
+.stab{padding:5px 12px;font-size:12px;font-family:var(--font);background:none;border:1px solid transparent;border-radius:20px;cursor:pointer;color:var(--t3);display:flex;align-items:center;gap:6px}
+.stab.active{background:var(--blue-bg);color:var(--blue-t);border-color:var(--blue)}
+.stab-count{font-size:10px;padding:1px 6px;border-radius:8px;background:var(--s3);font-weight:600;min-width:16px;text-align:center}
+.req-card{padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s}
+.req-card:hover{background:var(--s2)}
+.req-card.selected{background:var(--blue-bg);border-left:3px solid var(--blue)}
+.req-type-chip{font-size:10px;padding:2px 8px;border-radius:8px;font-weight:600;background:var(--s3);color:var(--t2)}
+.req-status-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.dot-pending{background:var(--orange-t)}
+.dot-approved{background:var(--green-t)}
+.dot-rejected{background:var(--red-t)}
+.pri-btn.active{background:var(--blue-bg)!important;color:var(--blue-t)!important;border-color:var(--blue)!important}
 </style>
 </head>
 <body>
@@ -962,49 +976,114 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);height:100vh
 
     <!-- REQUESTS -->
     <div id="page-requests" class="page" style="flex:1;display:none;flex-direction:column;overflow:hidden">
-      <div class="status-bar">
-      <button class="stab active" onclick="filterStatus('all',this)">All requests <span class="stab-count" id="sc-all">0</span></button>
-      <button class="stab" onclick="filterStatus('Pending',this)">Pending <span class="stab-count red" id="sc-pending">0</span></button>
-      <button class="stab" onclick="filterStatus('DM Review',this)">DM review <span class="stab-count" id="sc-dm">0</span></button>
-      <button class="stab" onclick="filterStatus('Approved',this)">Approved <span class="stab-count" id="sc-approved">0</span></button>
-      <button class="stab" onclick="filterStatus('Rejected',this)">Rejected <span class="stab-count" id="sc-rejected">0</span></button>
-      <div class="status-bar-sep"></div>
-      <select style="font-size:11px;padding:5px 9px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:var(--font);margin:6px 0" id="type-filter" onchange="renderList()">
-        <option value="">All types</option>
-        <option>Change HCP territory</option>
-        <option>Add HCP</option>
-        <option>Remove HCP</option>
-        <option>Reassign ZIP</option>
-        <option>Reassign OAM</option>
-      </select>
-    </div>
-
-    <!-- CONTENT SPLIT -->
-    <div class="content">
-
-      <!-- LEFT: REQUEST LIST -->
-      <div class="req-list-pane">
-        <div class="req-list-header">
-          <input class="req-list-search" placeholder="Search requests..." id="req-search" oninput="renderList()">
-        </div>
-        <div id="req-list"></div>
+      <!-- Top bar -->
+      <div style="padding:12px 20px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+        <div style="font-size:15px;font-weight:700">Change requests</div>
+        <button class="tbtn pri" id="new-req-btn" onclick="openNewRequestPanel()">
+          <svg viewBox="0 0 16 16" fill="none" width="12" height="12"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          New request
+        </button>
       </div>
-
-      <!-- RIGHT: DETAIL / NEW REQUEST -->
-      <div class="req-detail-pane" id="req-detail-pane">
-        <div class="detail-empty" id="detail-empty">
-          <svg viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="20" stroke="currentColor" stroke-width="1.5"/><path d="M16 24l6 6 10-10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <p>Select a request to review</p>
+      <!-- Status tabs -->
+      <div style="display:flex;gap:4px;padding:10px 20px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0">
+        <button class="stab active" onclick="filterReqStatus('all',this)">All <span class="stab-count" id="sc-all">0</span></button>
+        <button class="stab" onclick="filterReqStatus('pending',this)">Pending <span class="stab-count" id="sc-pending" style="background:var(--orange-bg);color:var(--orange-t)">0</span></button>
+        <button class="stab" onclick="filterReqStatus('approved',this)">Approved <span class="stab-count" id="sc-approved" style="background:var(--green-bg);color:var(--green-t)">0</span></button>
+        <button class="stab" onclick="filterReqStatus('rejected',this)">Rejected <span class="stab-count" id="sc-rejected" style="background:var(--red-bg);color:var(--red-t)">0</span></button>
+      </div>
+      <!-- Split view -->
+      <div style="flex:1;display:flex;overflow:hidden;min-width:0">
+        <!-- Left: request list -->
+        <div style="width:320px;flex-shrink:0;border-right:1px solid var(--border);overflow-y:auto;background:var(--surface)">
+          <div id="req-list-body"><div style="padding:40px 20px;text-align:center;font-size:12px;color:var(--t3)">Loading requests...</div></div>
         </div>
-        <div id="detail-view" style="display:none;height:100%;display:none;flex-direction:column">
-          <div style="flex:1;overflow-y:auto" id="detail-scroll"></div>
-          <div class="action-footer" id="action-footer"></div>
+        <!-- Right: detail pane -->
+        <div style="flex:1;overflow-y:auto;background:var(--bg)" id="req-detail-area">
+          <div style="display:flex;align-items:center;justify-content:center;height:100%;flex-direction:column;gap:12px;color:var(--t3)">
+            <svg width="40" height="40" viewBox="0 0 40 40" fill="none"><circle cx="20" cy="20" r="18" stroke="currentColor" stroke-width="1.5"/><path d="M13 20l5 5 9-9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <div style="font-size:13px">Select a request to review</div>
+          </div>
         </div>
-        <div id="new-req-view" style="display:none;height:100%;overflow-y:auto"></div>
       </div>
     </div>
-  </div>
-</div>
+
+    <!-- NEW REQUEST SLIDE PANEL -->
+    <div id="new-req-panel" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.4)" onclick="if(event.target===this)closeNewRequestPanel()">
+      <div style="position:absolute;right:0;top:0;bottom:0;width:480px;background:var(--surface);overflow-y:auto;display:flex;flex-direction:column;box-shadow:-4px 0 24px rgba(0,0,0,.15)">
+        <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+          <div style="font-size:15px;font-weight:700">New change request</div>
+          <button onclick="closeNewRequestPanel()" style="background:none;border:none;cursor:pointer;color:var(--t3);font-size:20px;line-height:1">✕</button>
+        </div>
+        <div style="padding:20px;flex:1">
+          <!-- Request type -->
+          <div style="margin-bottom:14px">
+            <label style="font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;display:block;margin-bottom:6px">Request type *</label>
+            <select id="nr-type" style="width:100%;padding:9px 12px;font-size:13px;font-family:var(--font);background:var(--s2);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);outline:none" onchange="updateNewReqForm()">
+              <option value="">Select type...</option>
+              <option value="Change HCP territory">Change HCP territory</option>
+              <option value="Reassign ZIP">Reassign ZIP</option>
+              <option value="Add HCP">Add HCP</option>
+              <option value="Remove HCP">Remove HCP</option>
+              <option value="Reassign OAM">Reassign OAM</option>
+            </select>
+          </div>
+          <!-- From territory -->
+          <div style="margin-bottom:14px">
+            <label style="font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;display:block;margin-bottom:6px">From territory *</label>
+            <select id="nr-src" style="width:100%;padding:9px 12px;font-size:13px;font-family:var(--font);background:var(--s2);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);outline:none">
+              <option value="">Select territory...</option>
+            </select>
+          </div>
+          <!-- To territory -->
+          <div style="margin-bottom:14px" id="nr-dst-wrap">
+            <label style="font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;display:block;margin-bottom:6px">To territory</label>
+            <select id="nr-dst" style="width:100%;padding:9px 12px;font-size:13px;font-family:var(--font);background:var(--s2);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);outline:none">
+              <option value="">Select territory...</option>
+            </select>
+          </div>
+          <!-- HCP / ZIP ID -->
+          <div style="margin-bottom:14px" id="nr-hcp-wrap">
+            <label style="font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;display:block;margin-bottom:6px" id="nr-hcp-label">HCP ID / ZIP code</label>
+            <input id="nr-hcp" placeholder="e.g. HCP00000013 or 90210" style="width:100%;padding:9px 12px;font-size:13px;font-family:var(--font);background:var(--s2);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);outline:none">
+          </div>
+          <!-- Priority -->
+          <div style="margin-bottom:14px">
+            <label style="font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;display:block;margin-bottom:6px">Priority</label>
+            <div style="display:flex;gap:8px">
+              <button class="pri-btn active" onclick="setPriority('Normal',this)" style="flex:1;padding:8px;font-size:12px;font-family:var(--font);border-radius:var(--r);border:1px solid var(--border2);background:var(--blue-bg);color:var(--blue-t);cursor:pointer;font-weight:600">Normal</button>
+              <button class="pri-btn" onclick="setPriority('High',this)" style="flex:1;padding:8px;font-size:12px;font-family:var(--font);border-radius:var(--r);border:1px solid var(--border2);background:var(--s2);color:var(--text);cursor:pointer">High</button>
+              <button class="pri-btn" onclick="setPriority('Urgent',this)" style="flex:1;padding:8px;font-size:12px;font-family:var(--font);border-radius:var(--r);border:1px solid var(--border2);background:var(--s2);color:var(--text);cursor:pointer">Urgent</button>
+            </div>
+          </div>
+          <!-- Reason -->
+          <div style="margin-bottom:14px">
+            <label style="font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;display:block;margin-bottom:6px">Reason *</label>
+            <select id="nr-reason" style="width:100%;padding:9px 12px;font-size:13px;font-family:var(--font);background:var(--s2);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);outline:none">
+              <option value="">Select reason...</option>
+              <option>Workload imbalance</option>
+              <option>Geographic efficiency</option>
+              <option>HCP preference</option>
+              <option>Territory restructure</option>
+              <option>Rep departure</option>
+              <option>New hire</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <!-- Comments -->
+          <div style="margin-bottom:20px">
+            <label style="font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;display:block;margin-bottom:6px">Comments</label>
+            <textarea id="nr-comment" placeholder="Provide context or additional detail..." rows="4" style="width:100%;padding:9px 12px;font-size:13px;font-family:var(--font);background:var(--s2);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);outline:none;resize:vertical"></textarea>
+          </div>
+          <!-- NSD auto-approve notice -->
+          <div id="nr-auto-note" style="display:none;background:var(--green-bg);border:1px solid var(--green);border-radius:var(--r);padding:10px 14px;font-size:12px;color:var(--green-t);margin-bottom:14px">
+            ✓ As NSD, your requests are auto-approved immediately.
+          </div>
+          <div id="nr-error" style="display:none;background:var(--red-bg);border-radius:var(--r);padding:10px 14px;font-size:12px;color:var(--red-t);margin-bottom:14px"></div>
+          <button onclick="submitNewRequest()" style="width:100%;padding:12px;font-size:14px;font-weight:600;font-family:var(--font);background:var(--blue);color:#fff;border:none;border-radius:var(--r2);cursor:pointer" id="nr-submit-btn">
+            Submit request
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- AUDIT LOG -->
@@ -1210,11 +1289,18 @@ const api = {
 
   exports: {
     async downloadCSV(endpoint, filename) {
-      const res  = await apiFetch(endpoint);
+      const token = Auth.getToken();
+      const res = await fetch(API_BASE + endpoint, {
+        headers: token ? { Authorization: 'Bearer ' + token } : {}
+      });
+      if (!res.ok) throw new Error('Export failed: HTTP ' + res.status);
       const blob = await res.blob();
       const url  = URL.createObjectURL(blob);
       const a    = document.createElement('a');
-      a.href = url; a.download = filename; a.click();
+      a.href = url; a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
       URL.revokeObjectURL(url);
     },
     ztt()         { return api.exports.downloadCSV('/export/ztt',         `ZTT_${Date.now()}.csv`); },
@@ -1304,6 +1390,15 @@ function openPage(page, el) {
   else if (page === 'versions') loadVersions();
   else if (page === 'conflicts') loadConflicts();
   else if (page === 'exports') renderExportPage();
+  else if (page === 'map') {
+    // Trigger resize inside iframe after it becomes visible
+    setTimeout(() => {
+      const iframe = document.getElementById('map-iframe');
+      if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage({ type: 'resize' }, '*');
+      }
+    }, 100);
+  }
 }
 
 // ===== DASHBOARD =====
@@ -1503,50 +1598,7 @@ function renderRosterPage() {
   }).join('') || '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--t3)">No results</td></tr>';
 }
 
-// ===== REQUESTS PAGE =====
-async function loadRequests() {
-  // Phase 4 JS handles this — just call its init if available
-  if (typeof initRequestsPage === 'function') {
-    initRequestsPage();
-  } else {
-    // Fallback: show requests in simple table
-    try {
-      const data = await api.requests.list({limit:50});
-      REQUESTS_DATA = data?.requests || [];
-      renderSimpleRequests();
-    } catch(e) {}
-  }
-}
 
-function renderSimpleRequests() {
-  const list = document.getElementById('req-list');
-  if (!list) return;
-  const statColors = {pending:'sp-pending',approved:'sp-approved',rejected:'sp-rejected','DM Review':'sp-review'};
-  list.innerHTML = REQUESTS_DATA.map(r => `
-    <div class="req-card ${selectedReqId===r.id?'active':''}" onclick="showReqDetail('${r.request_id}')">
-      <div class="req-card-top">
-        <span class="req-type-tag rt-change">${r.type}</span>
-        <span class="status-pip ${statColors[r.status]||'sp-pending'}"></span>
-      </div>
-      <div class="req-card-title">${r.src_territory||''}${r.dest_territory?' → '+r.dest_territory:''}</div>
-      <div class="req-card-meta">
-        <span>${r.request_id}</span>
-        <span class="req-card-meta-dot"></span>
-        <span>${r.requester_name||''}</span>
-        <span class="req-card-meta-dot"></span>
-        <span>${new Date(r.created_at).toLocaleDateString()}</span>
-      </div>
-    </div>`).join('') || '<div style="padding:20px;text-align:center;font-size:11px;color:var(--t3)">No requests yet.<br>Click "New request" to create one.</div>';
-  
-  // Update status counts
-  const counts = {all:REQUESTS_DATA.length, Pending:0, 'DM Review':0, Approved:0, Rejected:0};
-  REQUESTS_DATA.forEach(r => { if(counts[r.status]!==undefined) counts[r.status]++; });
-  Object.entries(counts).forEach(([k,v]) => {
-    const el = document.getElementById('sc-'+k.toLowerCase().replace(' ','-'));
-    if(el) el.textContent = v;
-  });
-  document.getElementById('req-badge').textContent = counts['Pending']||0;
-}
 
 let selectedReqId = null;
 async function showReqDetail(reqId) {
@@ -1595,54 +1647,10 @@ async function showReqDetail(reqId) {
   } catch(e) { showToast('Error loading request','warn'); }
 }
 
-async function addReqComment(reqId) {
-  const box = document.getElementById('new-comment-box');
-  if (!box?.value.trim()) return;
-  try {
-    await api.requests.comment(reqId, box.value.trim());
-    showToast('Comment added','success');
-    showReqDetail(reqId);
-  } catch(e) { showToast(e.message,'warn'); }
-}
 
-async function approveReq(reqId) {
-  try {
-    await api.requests.approve(reqId);
-    showToast(reqId + ' approved','success');
-    const data = await api.requests.list({limit:50});
-    REQUESTS_DATA = data?.requests||[];
-    renderSimpleRequests();
-    showReqDetail(reqId);
-  } catch(e) { showToast(e.message,'warn'); }
-}
 
-async function rejectReq(reqId) {
-  const reason = prompt('Rejection reason (required):');
-  if (!reason) return;
-  try {
-    await api.requests.reject(reqId, reason);
-    showToast(reqId + ' rejected','reject');
-    const data = await api.requests.list({limit:50});
-    REQUESTS_DATA = data?.requests||[];
-    renderSimpleRequests();
-  } catch(e) { showToast(e.message,'warn'); }
-}
 
-function filterStatus(status, btn) {
-  document.querySelectorAll('.stab').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-}
 
-function renderList() { renderSimpleRequests(); }
-
-// ===== AUDIT PAGE =====
-async function loadAudit() {
-  try {
-    const data = await api.audit.list({limit:100});
-    AUDIT_DATA = data?.logs || [];
-    renderAuditPage();
-  } catch(e) { showToast('Error loading audit log','warn'); }
-}
 
 function renderAuditPage() {
   const ACTION_COLORS = {'Request submitted':'b-purple','Approved':'b-green','Rejected':'b-red','Direct edit':'b-blue','Bulk upload':'b-orange','Rollback':'b-gray'};
@@ -1795,19 +1803,37 @@ async function handleFileUpload(input) {
 
 // ===== EXPORTS PAGE =====
 function renderExportPage() {
-  const cards = [
-    {title:'ZTT mapping',desc:'All ZIP → Territory → Rep mappings',fn:'() => api.exports.ztt().catch(e=>showToast(e.message,"warn"))'},
-    {title:'Territory index summary',desc:'All 50 territories with all 4 alignment indices',fn:'() => api.exports.territories().catch(e=>showToast(e.message,"warn"))'},
-    {title:'Audit log',desc:'Full action history',fn:'() => api.exports.audit().catch(e=>showToast(e.message,"warn"))'},
-  ];
-  document.getElementById('export-page-body').innerHTML = cards.map(e => `
-    <div class="panel" style="display:flex;align-items:center;gap:14px">
-      <div style="flex:1"><div style="font-size:13px;font-weight:600;margin-bottom:3px">${e.title}</div><div style="font-size:12px;color:var(--t3)">${e.desc}</div></div>
-      <button class="tbtn pri" onclick="(${e.fn})()" style="flex-shrink:0">
+  document.getElementById('export-page-body').innerHTML = `
+    <div class="panel" style="display:flex;align-items:center;gap:14px;margin-bottom:10px">
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:600;margin-bottom:3px">ZTT mapping</div>
+        <div style="font-size:12px;color:var(--t3)">All ZIP to Territory to Rep mappings — 41,521 rows</div>
+      </div>
+      <button class="tbtn pri" id="exp-ztt" onclick="doExport('ztt','ZTT',this)" style="flex-shrink:0;min-width:130px">
         <svg viewBox="0 0 16 16" fill="none" width="11" height="11"><path d="M8 3v8M5 8l3 3 3-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M2 13h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
         Download CSV
       </button>
-    </div>`).join('');
+    </div>
+    <div class="panel" style="display:flex;align-items:center;gap:14px;margin-bottom:10px">
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:600;margin-bottom:3px">Territory index summary</div>
+        <div style="font-size:12px;color:var(--t3)">All 50 territories with all 4 alignment indices</div>
+      </div>
+      <button class="tbtn pri" id="exp-terr" onclick="doExport('territories','Territories',this)" style="flex-shrink:0;min-width:130px">
+        <svg viewBox="0 0 16 16" fill="none" width="11" height="11"><path d="M8 3v8M5 8l3 3 3-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M2 13h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        Download CSV
+      </button>
+    </div>
+    <div class="panel" style="display:flex;align-items:center;gap:14px">
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:600;margin-bottom:3px">Audit log</div>
+        <div style="font-size:12px;color:var(--t3)">Full action history with before and after states</div>
+      </div>
+      <button class="tbtn pri" id="exp-audit" onclick="doExport('audit','AuditLog',this)" style="flex-shrink:0;min-width:130px">
+        <svg viewBox="0 0 16 16" fill="none" width="11" height="11"><path d="M8 3v8M5 8l3 3 3-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M2 13h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        Download CSV
+      </button>
+    </div>`;
 }
 
 // ===== TOAST =====
@@ -1956,6 +1982,342 @@ async function openTerrDetail(el) {
   ping(); // immediate ping on load
   setInterval(ping, 5 * 60 * 1000); // every 5 minutes
 })();
+
+
+// ===== EXPORT HELPER =====
+async function doExport(type, label) {
+  const btn = event.target.closest('button');
+  const orig = btn.innerHTML;
+  btn.disabled = true;
+  btn.textContent = 'Downloading...';
+  try {
+    if (type === 'ztt') await api.exports.ztt();
+    else if (type === 'territories') await api.exports.territories();
+    else if (type === 'audit') await api.exports.audit();
+    showToast(label + ' exported successfully', 'success');
+  } catch(e) {
+    showToast('Export failed: ' + e.message, 'warn');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = orig;
+  }
+}
+
+// ===== REQUEST WORKFLOW =====
+let currentReqFilter = 'all';
+let selectedReqId = null;
+let newReqPriority = 'Normal';
+
+async function loadRequests() {
+  try {
+    const params = { limit: 100 };
+    const data = await api.requests.list(params);
+    REQUESTS_DATA = data?.requests || [];
+    renderReqList();
+  } catch(e) {
+    document.getElementById('req-list-body').innerHTML =
+      '<div style="padding:20px;text-align:center;font-size:12px;color:var(--t3)">Error loading requests: ' + e.message + '</div>';
+  }
+}
+
+function filterReqStatus(status, btn) {
+  currentReqFilter = status;
+  document.querySelectorAll('.stab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderReqList();
+}
+
+function renderReqList() {
+  const filtered = currentReqFilter === 'all'
+    ? REQUESTS_DATA
+    : REQUESTS_DATA.filter(r => r.status === currentReqFilter);
+
+  // Update counts
+  const counts = { all: REQUESTS_DATA.length, pending: 0, approved: 0, rejected: 0 };
+  REQUESTS_DATA.forEach(r => { if (counts[r.status] !== undefined) counts[r.status]++; });
+  Object.entries(counts).forEach(([k,v]) => {
+    const el = document.getElementById('sc-' + k);
+    if (el) el.textContent = v;
+  });
+  document.getElementById('req-badge').textContent = counts.pending || 0;
+
+  const list = document.getElementById('req-list-body');
+  if (!list) return;
+
+  if (filtered.length === 0) {
+    list.innerHTML = '<div style="padding:40px 20px;text-align:center;font-size:12px;color:var(--t3)">' +
+      (currentReqFilter === 'all' ? 'No requests yet.<br>Click "+ New request" to create one.' : 'No ' + currentReqFilter + ' requests.') + '</div>';
+    return;
+  }
+
+  const DOT = { pending: 'dot-pending', approved: 'dot-approved', rejected: 'dot-rejected' };
+  list.innerHTML = filtered.map(r => `
+    <div class="req-card${selectedReqId === r.request_id ? ' selected' : ''}" onclick="showReqDetail('${r.request_id}')">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <span class="req-status-dot ${DOT[r.status] || 'dot-pending'}"></span>
+        <span style="font-size:10px;font-family:monospace;color:var(--t3)">${r.request_id}</span>
+        <span class="req-type-chip" style="margin-left:auto">${r.type}</span>
+      </div>
+      <div style="font-size:12px;font-weight:600;margin-bottom:3px">${r.src_territory || ''}${r.dest_territory ? ' → ' + r.dest_territory : ''}</div>
+      <div style="font-size:11px;color:var(--t3);display:flex;gap:8px">
+        <span>${r.requester_name || ''}</span>
+        <span>·</span>
+        <span>${new Date(r.created_at).toLocaleDateString()}</span>
+        ${r.priority !== 'Normal' ? `<span style="color:var(--orange-t);font-weight:600">· ${r.priority}</span>` : ''}
+      </div>
+    </div>`).join('');
+}
+
+async function showReqDetail(reqId) {
+  selectedReqId = reqId;
+  renderReqList();
+
+  const area = document.getElementById('req-detail-area');
+  area.innerHTML = '<div style="padding:40px;text-align:center;color:var(--t3)">Loading...</div>';
+
+  try {
+    const r = await api.requests.get(reqId);
+    const user = Auth.getUser();
+    const role = user?.role;
+
+    // Determine what actions this user can take
+    const canApprove = (role === 'NSD' && r.status === 'pending') ||
+                       (role === 'DM' && r.status === 'pending' && r.requester_role === 'OAM');
+    const canReject = canApprove;
+
+    const STATUS_LABEL = { pending: '⏳ Pending approval', approved: '✓ Approved', rejected: '✗ Rejected' };
+    const STATUS_COLOR = { pending: 'var(--orange-t)', approved: 'var(--green-t)', rejected: 'var(--red-t)' };
+
+    area.innerHTML = `
+      <div style="padding:20px;max-width:680px">
+        <!-- Header -->
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px">
+          <div>
+            <div style="font-size:16px;font-weight:700;margin-bottom:4px">${r.request_id}: ${r.type}</div>
+            <div style="font-size:12px;color:var(--t3)">Submitted by ${r.requester_name} (${r.requester_role}) · ${new Date(r.created_at).toLocaleString()}</div>
+          </div>
+          <span style="font-size:12px;font-weight:600;color:${STATUS_COLOR[r.status]};white-space:nowrap;padding:4px 10px;background:var(--s2);border-radius:20px">
+            ${STATUS_LABEL[r.status] || r.status}
+          </span>
+        </div>
+
+        <!-- Territory change -->
+        <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;margin-bottom:16px">
+          <div style="background:var(--s2);border-radius:var(--r2);padding:12px 14px">
+            <div style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;color:var(--red-t);margin-bottom:4px">From</div>
+            <div style="font-size:13px;font-weight:600">${r.src_territory || '—'}</div>
+          </div>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M14 6l6 6-6 6" stroke="var(--t3)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <div style="background:var(--s2);border-radius:var(--r2);padding:12px 14px">
+            <div style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;color:var(--green-t);margin-bottom:4px">To</div>
+            <div style="font-size:13px;font-weight:600">${r.dest_territory || '—'}</div>
+          </div>
+        </div>
+
+        <!-- Details -->
+        <div style="background:var(--s2);border-radius:var(--r2);padding:12px 14px;margin-bottom:16px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          ${r.hcp_zip ? `<div><div style="font-size:10px;color:var(--t3);margin-bottom:2px">HCP / ZIP</div><div style="font-size:12px;font-family:monospace">${r.hcp_zip}</div></div>` : ''}
+          ${r.reason ? `<div><div style="font-size:10px;color:var(--t3);margin-bottom:2px">Reason</div><div style="font-size:12px">${r.reason}</div></div>` : ''}
+          <div><div style="font-size:10px;color:var(--t3);margin-bottom:2px">Priority</div><div style="font-size:12px;font-weight:600">${r.priority || 'Normal'}</div></div>
+          <div><div style="font-size:10px;color:var(--t3);margin-bottom:2px">District</div><div style="font-size:12px">${r.district || '—'}</div></div>
+        </div>
+
+        ${r.conflict_msg ? `<div style="background:var(--orange-bg);border:1px solid var(--orange-t);border-radius:var(--r);padding:10px 14px;margin-bottom:16px;font-size:12px;color:var(--orange-t)">⚠ ${r.conflict_msg}</div>` : ''}
+        ${r.rejection_reason ? `<div style="background:var(--red-bg);border-radius:var(--r);padding:10px 14px;margin-bottom:16px;font-size:12px;color:var(--red-t)"><strong>Rejected:</strong> ${r.rejection_reason}</div>` : ''}
+
+        <!-- Comments -->
+        <div style="margin-bottom:16px">
+          <div style="font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px">Comments</div>
+          <div id="comment-thread">
+            ${(r.comments || []).length === 0
+              ? '<div style="font-size:12px;color:var(--t3);text-align:center;padding:16px">No comments yet</div>'
+              : (r.comments || []).map(c => `
+                <div style="display:flex;gap:10px;margin-bottom:12px">
+                  <div style="width:28px;height:28px;border-radius:50%;background:var(--blue-bg);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--blue-t);flex-shrink:0">
+                    ${(c.user_name||'?').split(' ').map(w=>w[0]).slice(0,2).join('')}
+                  </div>
+                  <div style="flex:1;background:var(--s2);border-radius:var(--r2);padding:10px 12px">
+                    <div style="font-size:11px;font-weight:600;margin-bottom:3px">${c.user_name} <span style="font-weight:400;color:var(--t3)">${new Date(c.created_at).toLocaleDateString()}</span></div>
+                    <div style="font-size:12px">${c.comment}</div>
+                  </div>
+                </div>`).join('')
+            }
+          </div>
+          <!-- Add comment -->
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <textarea id="comment-input" placeholder="Add a comment..." rows="2" style="flex:1;padding:8px 12px;font-size:12px;font-family:var(--font);background:var(--s2);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);outline:none;resize:none"></textarea>
+            <button onclick="submitComment('${reqId}')" style="padding:8px 14px;font-size:12px;font-weight:600;font-family:var(--font);background:var(--blue-bg);color:var(--blue-t);border:1px solid var(--blue);border-radius:var(--r);cursor:pointer;flex-shrink:0">Send</button>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        ${canApprove ? `
+        <div style="display:flex;gap:10px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);margin-top:16px">
+          <div style="flex:1">
+            <div style="font-size:12px;font-weight:600;margin-bottom:2px">${role === 'DM' ? 'Forward to NSD for final approval' : 'Approve and apply alignment change'}</div>
+            <div style="font-size:11px;color:var(--t3)">${role === 'DM' ? 'You are confirming this request is valid for your district' : 'This will immediately update the territory alignment'}</div>
+          </div>
+          <button onclick="approveReq('${reqId}')" style="padding:10px 20px;font-size:13px;font-weight:600;font-family:var(--font);background:var(--green-t);color:#fff;border:none;border-radius:var(--r);cursor:pointer;flex-shrink:0">
+            ${role === 'DM' ? 'Forward to NSD' : 'Approve'}
+          </button>
+          <button onclick="rejectReqPrompt('${reqId}')" style="padding:10px 20px;font-size:13px;font-weight:600;font-family:var(--font);background:none;color:var(--red-t);border:1px solid var(--red-t);border-radius:var(--r);cursor:pointer;flex-shrink:0">
+            Reject
+          </button>
+        </div>` : ''}
+      </div>`;
+
+  } catch(e) {
+    area.innerHTML = '<div style="padding:20px;color:var(--red-t);font-size:12px">Error: ' + e.message + '</div>';
+  }
+}
+
+async function submitComment(reqId) {
+  const input = document.getElementById('comment-input');
+  if (!input?.value.trim()) return;
+  try {
+    await api.requests.comment(reqId, input.value.trim());
+    input.value = '';
+    showReqDetail(reqId);
+  } catch(e) { showToast(e.message, 'warn'); }
+}
+
+
+async function rejectReqPrompt(reqId) {
+  const reason = prompt('Enter rejection reason (required):');
+  if (!reason?.trim()) return;
+  try {
+    await api.requests.reject(reqId, reason.trim());
+    await loadRequests();
+    showReqDetail(reqId);
+    showToast(reqId + ' rejected', 'info');
+  } catch(e) { showToast(e.message, 'warn'); }
+}
+
+// ── New Request Panel ──────────────────────────────────────────
+function openNewRequestPanel() {
+  const user = Auth.getUser();
+  const role = user?.role;
+
+  // Populate territory dropdowns
+  const src = document.getElementById('nr-src');
+  const dst = document.getElementById('nr-dst');
+  if (src && TERRITORIES_DATA.length) {
+    const opts = TERRITORIES_DATA.map(t => `<option value="${t.name}">${t.name}</option>`).join('');
+    src.innerHTML = '<option value="">Select territory...</option>' + opts;
+    dst.innerHTML = '<option value="">Select territory...</option>' + opts;
+  }
+
+  // OAM defaults to their own territory
+  if (role === 'OAM' && user.territory_name) {
+    src.value = user.territory_name;
+  }
+
+  // Show auto-approve notice for NSD
+  const note = document.getElementById('nr-auto-note');
+  if (note) note.style.display = role === 'NSD' ? 'block' : 'none';
+
+  // Hide New Request button for NSD in certain contexts (they can still submit)
+  document.getElementById('nr-error').style.display = 'none';
+  document.getElementById('nr-panel') && (document.getElementById('nr-panel').innerHTML = '');
+
+  document.getElementById('new-req-panel').style.display = 'flex';
+}
+
+function closeNewRequestPanel() {
+  document.getElementById('new-req-panel').style.display = 'none';
+  // Reset form
+  ['nr-type','nr-src','nr-dst','nr-reason','nr-hcp','nr-comment'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  newReqPriority = 'Normal';
+  document.querySelectorAll('.pri-btn').forEach((b,i) => {
+    b.classList.toggle('active', i === 0);
+    b.style.background = i === 0 ? 'var(--blue-bg)' : 'var(--s2)';
+    b.style.color = i === 0 ? 'var(--blue-t)' : 'var(--text)';
+    b.style.borderColor = i === 0 ? 'var(--blue)' : 'var(--border2)';
+  });
+}
+
+function setPriority(p, btn) {
+  newReqPriority = p;
+  document.querySelectorAll('.pri-btn').forEach(b => {
+    b.classList.remove('active');
+    b.style.background = 'var(--s2)';
+    b.style.color = 'var(--text)';
+    b.style.borderColor = 'var(--border2)';
+  });
+  btn.classList.add('active');
+  btn.style.background = 'var(--blue-bg)';
+  btn.style.color = 'var(--blue-t)';
+  btn.style.borderColor = 'var(--blue)';
+}
+
+function updateNewReqForm() {
+  const type = document.getElementById('nr-type')?.value;
+  const hcpLabel = document.getElementById('nr-hcp-label');
+  const dstWrap = document.getElementById('nr-dst-wrap');
+  if (hcpLabel) {
+    if (type === 'Reassign ZIP') hcpLabel.textContent = 'ZIP code *';
+    else if (type === 'Remove HCP') hcpLabel.textContent = 'HCP ID to remove *';
+    else hcpLabel.textContent = 'HCP ID / ZIP code';
+  }
+  if (dstWrap) {
+    dstWrap.style.display = type === 'Remove HCP' ? 'none' : 'block';
+  }
+}
+
+async function submitNewRequest() {
+  const type = document.getElementById('nr-type')?.value;
+  const src  = document.getElementById('nr-src')?.value;
+  const dst  = document.getElementById('nr-dst')?.value;
+  const hcp  = document.getElementById('nr-hcp')?.value;
+  const reason = document.getElementById('nr-reason')?.value;
+  const comment = document.getElementById('nr-comment')?.value;
+  const errEl = document.getElementById('nr-error');
+
+  if (!type) { errEl.textContent = 'Please select a request type'; errEl.style.display = 'block'; return; }
+  if (!src)  { errEl.textContent = 'Please select a From territory'; errEl.style.display = 'block'; return; }
+  if (!reason) { errEl.textContent = 'Please select a reason'; errEl.style.display = 'block'; return; }
+  errEl.style.display = 'none';
+
+  const btn = document.getElementById('nr-submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Submitting...';
+
+  try {
+    const result = await api.requests.create({
+      type,
+      src_territory_name: src,
+      dest_territory_name: dst || null,
+      hcp_zip: hcp || null,
+      reason,
+      comment: comment || null,
+      priority: newReqPriority
+    });
+
+    closeNewRequestPanel();
+    await loadRequests();
+    showToast(result.request_id + ' submitted successfully', 'success');
+
+    // If NSD - auto approve
+    const user = Auth.getUser();
+    if (user?.role === 'NSD' && result.request_id) {
+      try {
+        await api.requests.approve(result.request_id);
+        showToast(result.request_id + ' auto-approved (NSD)', 'success');
+        await loadRequests();
+      } catch(e) { /* non-fatal */ }
+    }
+
+  } catch(e) {
+    errEl.textContent = e.message;
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Submit request';
+  }
+}
 
 </script>
 

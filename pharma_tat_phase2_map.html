@@ -389,6 +389,49 @@ d3.json('https://cdn.jsdelivr.net/npm/us-atlas@3/counties-10m.json')
       document.getElementById(id).innerHTML='<div style="color:#c0392b;font-size:12px;padding:20px;text-align:center">Could not load map data.<br>Check your internet connection.</div>';
     });
   });
+
+// Listen for resize message from parent frame
+window.addEventListener('message', function(e) {
+  if (e.data && e.data.type === 'resize') {
+    // Redraw both maps with correct dimensions
+    const countyPane = document.getElementById('county-pane');
+    const heatPane = document.getElementById('heat-pane');
+    if (countyPane) {
+      const W = countyPane.clientWidth;
+      const H = countyPane.clientHeight;
+      if (W > 0 && H > 0) {
+        const svg = document.getElementById('county-svg');
+        if (svg) {
+          svg.setAttribute('width', W);
+          svg.setAttribute('height', H);
+          // Reproject
+          if (typeof proj !== 'undefined') {
+            proj.translate([W/2, H/2]);
+            const path = d3.geoPath().projection(proj);
+            d3.selectAll('path.county').attr('d', path);
+            d3.selectAll('path.state-border').attr('d', path);
+          }
+        }
+      }
+    }
+    if (heatPane) {
+      const HW = heatPane.clientWidth;
+      const HH = heatPane.clientHeight;
+      if (HW > 0 && HH > 0) {
+        const svg2 = document.getElementById('heat-svg');
+        if (svg2) {
+          svg2.setAttribute('width', HW);
+          svg2.setAttribute('height', HH);
+          if (typeof proj2 !== 'undefined') {
+            proj2.translate([HW/2, HH/2]);
+            const path2 = d3.geoPath().projection(proj2);
+            d3.selectAll('path.state').attr('d', path2);
+          }
+        }
+      }
+    }
+  }
+});
 </script>
 </body>
 </html>
