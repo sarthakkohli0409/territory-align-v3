@@ -7,6 +7,9 @@ const fs        = require('fs');
 const path      = require('path');
 const { pool }  = require('./pool');
 
+// Read init.sql once at startup
+const SQL_FILE = path.join(__dirname, 'init.sql');
+
 async function autoMigrate() {
   try {
     const check = await pool.query("SELECT to_regclass('public.territories') AS exists");
@@ -15,12 +18,11 @@ async function autoMigrate() {
       return;
     }
     console.log('  Running database migration...');
-    const sqlFile = path.join(__dirname, 'init.sql');
-    if (!fs.existsSync(sqlFile)) {
+    if (!fs.existsSync(SQL_FILE)) {
       console.warn('  init.sql not found - skipping migration');
       return;
     }
-    const sql = fs.readFileSync(sqlFile, 'utf8');
+    const sql = fs.readFileSync(SQL_FILE, 'utf8');
     await pool.query(sql);
     console.log('  Database schema created successfully');
   } catch (err) {
@@ -35,7 +37,6 @@ app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Rate limiting — exclude seed routes
 app.use('/api', rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 500,
@@ -52,7 +53,21 @@ app.get('/health', async (req, res) => {
   }
 });
 
-// Setup route - create users
+// Manual migrate endpoint — runs init.sql on demand
+app.get('/migrate', async (req, res) => {
+  try {
+    if (!fs.existsSync(SQL_FILE)) {
+      return res.status(500).json({ error: 'init.sql not found on server' });
+    }
+    const sql = fs.readFileSync(SQL_FILE, 'utf8');
+    await pool.query(sql);
+    res.json({ success: true, message: 'Database schema created successfully. Now visit /setup then /seed.html' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Setup route - create login users
 app.get('/setup', async (req, res) => {
   try {
     const bcrypt = require('bcryptjs');
@@ -62,7 +77,7 @@ app.get('/setup', async (req, res) => {
       ('E051','District Manager 1','DM','${hash}'),
       ('E001','Rep 1','OAM','${hash}')
       ON CONFLICT(personnel_id) DO NOTHING`);
-    res.json({ success: true, message: 'Users created!' });
+    res.json({ success: true, message: 'Users created! Now visit /seed.html to load all data.' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
